@@ -1,0 +1,59 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Hydra Configuration
+
+## Configuration Structure
+
+Hydra configurations in this project follow a hierarchical structure:
+
+1. [conf/config.yaml](mdc:conf/config.yaml): Main configuration with defaults:
+   ```yaml
+   defaults:
+     - model: naive_bayes
+     - feature_extractor: tfidf_default
+     - _self_  # Allow this file to override values
+   ```
+
+2. Model configs in `conf/model/`: Defines model and parameters
+   - [naive_bayes.yaml](mdc:conf/model/naive_bayes.yaml)
+   - [logistic_regression.yaml](mdc:conf/model/logistic_regression.yaml)
+   - [svm.yaml](mdc:conf/model/svm.yaml)
+
+3. Feature extractor config:
+   - [tfidf_default.yaml](mdc:conf/feature_extractor/tfidf_default.yaml)
+
+## Package Directive
+
+Each config file declares its namespace with `@package` directive:
+
+```yaml
+# @package model
+_target_: sklearn.naive_bayes.MultinomialNB
+alpha: 1.0
+```
+
+This places all values under `cfg.model` when accessed in code.
+
+## Model Configuration
+
+Model configs follow this pattern:
+1. `_target_`: Fully qualified class name
+2. Constructor parameters (e.g., `alpha`, `C`, etc.)
+3. Metadata (e.g., `model_name`)
+
+## Instantiating Models
+
+Models are instantiated in [train.py](mdc:train.py) with:
+```python
+active_model = hydra.utils.instantiate(cfg.model)
+```
+
+This dynamically imports and instantiates the class specified by `_target_`, passing all other parameters as constructor arguments.
+
+## Common Issues
+
+- **Type Conversion**: List to tuple conversion (e.g., `ngram_range`)
+- **Non-constructor parameters**: Some config values like `model_name` aren't valid constructor parameters

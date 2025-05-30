@@ -1,0 +1,39 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Hydra Experiments Project Overview
+
+This project demonstrates using Hydra for ML experiment configuration management with a spam classification example.
+
+## Project Structure
+
+- [train.py](mdc:train.py): Main script for training and evaluating models
+- `conf/`: Contains all Hydra configuration files
+  - [conf/config.yaml](mdc:conf/config.yaml): Main configuration file
+  - `conf/model/`: Model-specific configurations
+  - `conf/feature_extractor/`: Feature extraction configurations
+  - `conf/dataset/`: Dataset configurations
+
+## Key Concepts
+
+- Hydra loads configurations from YAML files and composes them
+- The main script uses `@hydra.main` decorator
+- Models are dynamically instantiated based on configuration
+- Configurations can be overridden via command line
+
+## Example Usage
+
+```bash
+# Run with default configuration
+python train.py
+
+# Run with a different model
+python train.py model=logistic_regression
+
+# Override specific parameters
+python train.py model.alpha=0.5
+```
+
+See [Hydra Configuration](mdc:.cursor/rules/hydra-config.mdc) for more details on configuration.

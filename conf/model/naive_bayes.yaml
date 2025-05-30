@@ -1,0 +1,6 @@
+# @package model
+
+_target_: sklearn.naive_bayes.MultinomialNB
+
+# Hyperparameters for Multinomial Naive Bayes
+alpha: 1.0 # Additive (Laplace/Lidstone) smoothing parameter

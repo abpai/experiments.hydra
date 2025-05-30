@@ -1,0 +1,11 @@
+# @package feature_extractor
+
+# Configuration for sentence-transformers
+_target_: sentence_transformers.SentenceTransformer
+
+# Direct parameters for SentenceTransformer.__init__
+model_name_or_path: "all-MiniLM-L6-v2"
+
+# Parameters for the .encode() method - these will be accessed in code
+encode_params:
+  batch_size: 32 # Batch size for encoding

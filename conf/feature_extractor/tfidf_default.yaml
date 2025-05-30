@@ -1,0 +1,13 @@
+# This defines parameters for TfidfVectorizer.
+# It doesn't have a _target_ here because we are manually creating
+# TfidfVectorizer in the script and passing these params.
+# Alternatively, you could add a _target_ and instantiate it with Hydra.
+
+# The `# @package _group_` directive is not strictly needed here as it's implicitly
+# part of the 'feature_extractor' group by its location, but good for clarity if moved.
+
+params:
+  min_df: 1 # Minimum document frequency
+  max_df: 1.0 # Maximum document frequency (proportion)
+  ngram_range: [1, 1] # Use only unigrams
+  # stop_words: 'english' # Example: uncomment to use stop words

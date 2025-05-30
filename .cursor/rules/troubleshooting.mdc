@@ -1,0 +1,35 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Troubleshooting Hydra ML Projects
+
+## Common Issues and Solutions
+
+### 1. Package Directive Issues
+
+**Problem**: Configuration loaded under `_group_` instead of the expected namespace
+**Solution**: Change `# @package _group_` to explicitly name the package, e.g., `# @package model`
+
+### 2. Constructor Parameter Mismatch
+
+Structure config to separate constructor params from metadata:
+```yaml
+# @package model
+_target_: sklearn.naive_bayes.MultinomialNB
+params:  # Constructor parameters only
+  alpha: 1.0
+model_name: "Naive_Bayes"  # Metadata
+```
+
+### 3. Type Conversion Issues
+
+**Problem**: Parameters loaded from YAML as lists when tuples are required (e.g., `ngram_range`)
+
+**Solution**: Convert types explicitly:
+```python
+vectorizer_params = {**cfg.feature_extractor.params}
+vectorizer_params["ngram_range"] = tuple(vectorizer_params["ngram_range"])
+vectorizer = TfidfVectorizer(**vectorizer_params)
+```

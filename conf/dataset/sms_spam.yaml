@@ -1,0 +1,11 @@
+# @package dataset
+
+name: "sms_spam"
+path: "data/spam.csv" # Path relative to project root
+test_split_ratio: 0.2
+validation_split_ratio: 0.1 # For early stopping and hyperparameter tuning
+text_column: "v2" # Column containing the SMS text
+label_column: "v1" # Column containing the spam/ham labels
+label_mapping: # Maps text labels to numeric values
+  ham: 0
+  spam: 1

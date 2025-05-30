@@ -1,0 +1,9 @@
+# @package model
+
+_target_: sklearn.svm.SVC
+
+# Hyperparameters for Support Vector Classifier
+C: 1.0
+kernel: "rbf"
+probability: True # Useful if you need probability estimates later
+random_state: ${experiment.random_seed}

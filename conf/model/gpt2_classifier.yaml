@@ -1,0 +1,18 @@
+# @package model
+# Note: Despite the filename, this is actually an MLP classifier, not a transformer
+
+_target_: models.gpt2.GPT2Classifier
+
+# GPT-2 model configuration
+model_name: "gpt2" # Can be "gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl"
+num_of_classes: 2
+dropout_p: 0.1
+freeze_transformer: true # Set to false to train the entire model
+max_length: 512
+
+# Training parameters optimized for transformer fine-tuning
+learning_rate: 2e-5 # Lower learning rate typical for pre-trained transformers
+weight_decay: 0.01
+batch_size: 8 # Smaller batch size due to memory requirements
+num_epochs: 3 # Fewer epochs typically needed for fine-tuning
+random_state: ${experiment.random_seed}

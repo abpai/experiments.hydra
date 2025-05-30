@@ -1,0 +1,15 @@
+# @package model
+
+_target_: models.embeddings.EmbeddingsClassifier
+
+embedding_dim: 384 # Default output dimension for all-MiniLM-L6-v2
+hidden_units: 128
+num_of_classes: 2
+dropout_p: 0.5
+
+# Training parameters
+learning_rate: 1e-3
+weight_decay: 1e-5
+batch_size: 32
+num_epochs: 5
+random_state: ${experiment.random_seed}

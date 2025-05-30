@@ -1,0 +1,10 @@
+# @package model
+
+_target_: sklearn.linear_model.LogisticRegression
+
+# Hyperparameters for Logistic Regression
+C: 1.0
+solver: "liblinear" # Good default for small datasets, supports L1/L2
+max_iter: 100
+# Example of referencing another config value (random_seed from experiment block)
+random_state: ${experiment.random_seed}
