@@ -62,10 +62,28 @@ class GPT2Classifier(nn.Module):
     self.num_epochs = num_epochs
     self.freeze_transformer = freeze_transformer
 
-    # Freeze transformer layers if specified
-    if freeze_transformer:
-      for param in self.transformer.parameters():
-        param.requires_grad = False
+    # Freeze transformer layers strategically
+    # Based on "Finetuning Large Language Models" by Sebastian Raschka
+    # (https://magazine.sebastianraschka.com/p/finetuning-large-language-models)
+    # Most gains can be achieved by only training the last transformer block
+    # and final layers
+
+    # Always freeze all transformer parameters initially
+    for param in self.transformer.parameters():
+      param.requires_grad = False
+
+    # If not freezing transformer, only unfreeze the last transformer block
+    # and final layer norm
+    if not freeze_transformer:
+      # Unfreeze the last transformer block (most effective for finetuning)
+      if hasattr(self.transformer, 'h') and len(self.transformer.h) > 0:
+        for param in self.transformer.h[-1].parameters():
+          param.requires_grad = True
+
+      # Unfreeze the final layer norm (part of the "last 2 layers")
+      if hasattr(self.transformer, 'ln_f'):
+        for param in self.transformer.ln_f.parameters():
+          param.requires_grad = True
 
     # Classification head
     hidden_size = self.config.n_embd
