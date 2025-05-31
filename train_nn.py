@@ -15,6 +15,10 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
+from mlflow_integration import MLflowHydraIntegration
+
+# Register tuple resolver for OmegaConf (to handle tuple parameters in configs)
+OmegaConf.register_new_resolver('as_tuple', lambda *args: tuple(args))
 
 logger = structlog.get_logger(__name__)
 
@@ -186,8 +190,9 @@ def create_data_splits(
 def train_nn_pipeline(cfg: DictConfig) -> None:
   """Main training pipeline."""
   try:
-    # Initialize experiment tracker
-    tracker = ExperimentTracker()
+    # Initialize both tracking systems
+    tracker = ExperimentTracker()  # Keep for backwards compatibility
+    mlflow_integration = MLflowHydraIntegration(cfg)
     start_time = time.time()
 
     # Print configuration
@@ -198,6 +203,12 @@ def train_nn_pipeline(cfg: DictConfig) -> None:
     # Set random seed for reproducibility
     torch.manual_seed(cfg.experiment.random_seed)
     np.random.seed(cfg.experiment.random_seed)
+
+    # Start MLflow run and keep it active for the entire training
+    mlflow_integration.start_run()
+
+    # Log Hydra configuration to MLflow
+    mlflow_integration.log_hydra_config()
 
     # Load data
     X_text, y_labels = load_dataset(cfg)
@@ -217,6 +228,14 @@ def train_nn_pipeline(cfg: DictConfig) -> None:
     # Create train/val/test splits
     X_train, X_val, X_test, y_train, y_val, y_test = create_data_splits(
       X_text, y_labels, cfg
+    )
+
+    # Log training metadata to MLflow
+    mlflow_integration.log_training_metadata(
+      train_size=len(X_train),
+      val_size=len(X_val),
+      test_size=len(X_test),
+      device=str(device),
     )
 
     # Generate embeddings
@@ -324,6 +343,17 @@ def train_nn_pipeline(cfg: DictConfig) -> None:
 
       logger.info(log_msg)
 
+      # Log epoch metrics to MLflow
+      epoch_metrics = {
+        'train_loss': train_loss,
+        'train_accuracy': train_metrics['accuracy'],
+        'test_accuracy': test_metrics['accuracy'],
+      }
+      if val_loader is not None:
+        epoch_metrics['val_accuracy'] = val_metrics['accuracy']
+
+      mlflow_integration.log_metrics(epoch_metrics, step=epoch)
+
     # Final evaluation
     final_metrics = evaluate(model, test_loader)
     logger.info('--- Final Evaluation Results ---')
@@ -345,8 +375,29 @@ def train_nn_pipeline(cfg: DictConfig) -> None:
     # Save model
     model_path = save_model(model, cfg, final_metrics)
 
-    # Log experiment results
+    # Calculate training time and log final metrics to MLflow
     training_time = time.time() - start_time
+
+    final_mlflow_metrics = {
+      'final_test_accuracy': final_metrics['accuracy'],
+      'training_time_seconds': training_time,
+    }
+
+    # Add macro-averaged metrics if available
+    report = final_metrics.get('report', {})
+    if 'macro avg' in report:
+      macro_avg = report['macro avg']
+      final_mlflow_metrics.update(
+        {
+          'precision_macro': macro_avg.get('precision', 0.0),
+          'recall_macro': macro_avg.get('recall', 0.0),
+          'f1_macro': macro_avg.get('f1-score', 0.0),
+        }
+      )
+
+    mlflow_integration.log_metrics(final_mlflow_metrics)
+
+    # Log experiment results to custom tracker (for backwards compatibility)
     tracker.log_experiment(
       cfg=cfg,
       metrics=final_metrics,
@@ -355,9 +406,13 @@ def train_nn_pipeline(cfg: DictConfig) -> None:
       training_time=training_time,
     )
 
+    # End MLflow run
+    mlflow_integration.end_run()
+
     if model_path:
       logger.info(f'Training completed successfully. Model saved to {model_path}')
     logger.info('Experiment tracked in experiment_results/')
+    logger.info('MLflow tracking completed')
 
   except Exception as e:
     logger.error(f'Training failed with error: {str(e)}')

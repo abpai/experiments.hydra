@@ -20,7 +20,8 @@ This project demonstrates:
 - 🔄 **Easy Experimentation**: Command-line configuration overrides
 - 📈 **Comprehensive Evaluation**: Accuracy metrics and classification reports
 - 💾 **Model Persistence**: Automatic model saving with metadata
-- 📋 **Experiment Tracking**: Unified tracking and analysis across all model types
+- 📋 **Dual Experiment Tracking**: MLflow integration + custom CSV tracking
+- 🖥️ **MLflow UI**: Interactive web interface for experiment comparison
 - 📊 **Visual Analysis**: Automated plots and comparison tools
 
 ## Installation
@@ -62,8 +63,11 @@ experiments.hydra/
 ├── train_nn.py                 # Neural network training pipeline
 ├── train_llm.py                # LLM training pipeline
 ├── load_dataset.py             # Dataset loading utilities
-├── experiment_tracker.py       # Unified experiment tracking system
-├── analyze_experiments.py      # Experiment analysis and visualization
+├── experiment_tracker.py       # Custom CSV-based experiment tracking
+├── mlflow_integration.py       # MLflow integration and configuration
+├── analyze_experiments.py      # Custom experiment analysis and visualization
+├── launch_mlflow_ui.py         # MLflow UI launcher script
+├── test_training_scripts.py    # Validation script for all training pipelines
 ├── models/                     # Model implementations
 │   ├── embeddings.py           # Embeddings classifier model implementation
 │   └── gpt2.py                 # GPT-2 classifier model implementation
@@ -79,13 +83,16 @@ experiments.hydra/
 │   │   └── svm.yaml
 │   ├── feature_extractor/      # Feature extraction configs
 │   │   ├── tfidf_default.yaml
+│   │   ├── tfidf_advanced.yaml
+│   │   ├── count_vectorizer.yaml
 │   │   └── sentence_transformer.yaml
 │   └── dataset/                # Dataset configurations
 │       ├── sms_spam.yaml
 │       └── dummy_spam.yaml
 ├── data/                       # Dataset storage
 ├── outputs/                    # Training outputs and logs
-├── experiment_results/         # Experiment tracking results
+├── mlruns/                     # MLflow experiment tracking data
+├── experiment_results/         # Custom experiment tracking results
 │   ├── experiment_results.csv  # Unified results table
 │   └── experiment_*.json       # Detailed experiment records
 └── pyproject.toml              # Project dependencies
@@ -109,14 +116,18 @@ python train_scikit.py model=svm
 python train_scikit.py model=logistic_regression model.C=0.1
 python train_scikit.py model=svm model.kernel=rbf model.C=10.0
 
-# Change feature extraction
-python train_scikit.py feature_extractor.params.min_df=2
-python train_scikit.py feature_extractor.params.max_df=0.8
-python train_scikit.py feature_extractor.params.ngram_range=[1,3]
+# Use different feature extractors
+python train_scikit.py feature_extractor=tfidf_advanced
+python train_scikit.py feature_extractor=count_vectorizer
+
+# Change feature extraction parameters
+python train_scikit.py feature_extractor.min_df=2
+python train_scikit.py feature_extractor.max_df=0.8
+python train_scikit.py feature_extractor.ngram_range=[1,3]
 
 # Add new TF-IDF parameters (will be added to config)
-python train_scikit.py +feature_extractor.params.max_features=5000
-python train_scikit.py +feature_extractor.params.stop_words=english
+python train_scikit.py +feature_extractor.max_features=5000
+python train_scikit.py +feature_extractor.stop_words=english
 
 # Use different dataset
 python train_scikit.py dataset=dummy_spam
@@ -197,34 +208,47 @@ Each training script uses a dedicated main configuration:
 
 ### Feature Extractors
 
-- `tfidf_default`: TF-IDF vectorization (for scikit-learn)
-- `sentence_transformer`: Sentence embeddings (for neural networks)
+#### For Scikit-learn Models
 
-#### TF-IDF Parameters
+- `tfidf_default`: Basic TF-IDF vectorization
+- `tfidf_advanced`: Advanced TF-IDF with stop words and bigrams
+- `count_vectorizer`: Count-based feature extraction
 
-The `tfidf_default` configuration includes these parameters:
+#### For Neural Networks
+
+- `sentence_transformer`: Sentence embeddings using transformers
+
+#### Scikit-learn Feature Extractor Usage
+
+All feature extractors now use Hydra's instantiation system for consistency:
+
+```shell
+# Use different feature extractors
+python train_scikit.py feature_extractor=tfidf_default
+python train_scikit.py feature_extractor=tfidf_advanced
+python train_scikit.py feature_extractor=count_vectorizer
+
+# Override specific parameters
+python train_scikit.py feature_extractor.min_df=2
+python train_scikit.py feature_extractor.max_df=0.8
+python train_scikit.py feature_extractor.ngram_range=[1,3]
+
+# Add new parameters with + prefix
+python train_scikit.py +feature_extractor.max_features=5000
+python train_scikit.py +feature_extractor.stop_words=english
+```
+
+#### Available TF-IDF Parameters
+
+All sklearn.feature_extraction.text.TfidfVectorizer parameters are supported:
 
 - `min_df`: Minimum document frequency (default: 1)
 - `max_df`: Maximum document frequency (default: 1.0)
 - `ngram_range`: N-gram range (default: [1,1])
-
-You can override existing parameters or add new ones:
-
-```shell
-# Override existing parameters
-python train_scikit.py feature_extractor.params.min_df=2
-python train_scikit.py feature_extractor.params.max_df=0.8
-
-# Add new parameters with + prefix
-python train_scikit.py +feature_extractor.params.max_features=5000
-python train_scikit.py +feature_extractor.params.stop_words=english
-```
-
-Common TF-IDF parameters you can add:
-
 - `max_features`: Maximum number of features
 - `stop_words`: Stop words to remove ('english' or custom list)
 - `lowercase`: Convert to lowercase (default: True)
+- `strip_accents`: Remove accents ('unicode', 'ascii', or None)
 - `binary`: Use binary term frequencies (default: False)
 
 ## Advanced Usage
@@ -276,19 +300,28 @@ outputs/
 
 ## Experiment Tracking
 
-The project includes a unified experiment tracking system that automatically logs all training runs across different model types, making it easy to compare performance and analyze results.
+The project includes **dual experiment tracking** with both a custom CSV-based system and **MLflow integration** for comprehensive experiment management and visualization.
 
 ### Automatic Tracking
 
-Every training run is automatically tracked with:
+Every training run is automatically tracked with **both systems**:
 
-- **Model performance**: Accuracy, precision, recall, F1-score
-- **Hyperparameters**: Model-specific parameters and configurations
-- **Training metadata**: Timestamps, training time, model paths
-- **Full configuration**: Complete Hydra config for reproducibility
+#### **MLflow Tracking** (Primary)
 
-Results are saved to:
+- **Auto-logging**: Automatic model parameters, metrics, and artifacts
+- **Web UI**: Interactive experiment comparison and visualization
+- **Model Registry**: Built-in model versioning and deployment preparation
+- **Artifact Storage**: Models, configs, and plots automatically saved
 
+#### **Custom CSV Tracking** (Backup/Analysis)
+
+- **Unified Table**: All experiments in single CSV for analysis
+- **Custom Metrics**: Project-specific tracking fields
+- **Backwards Compatibility**: Works without MLflow dependency
+
+**Data Storage**:
+
+- `mlruns/` - MLflow experiment data and artifacts
 - `experiment_results/experiment_results.csv` - Unified results table
 - `experiment_results/experiment_*.json` - Detailed run information
 
@@ -339,6 +372,43 @@ python analyze_experiments.py --model-type neural_network
 python analyze_experiments.py --model-type transformer
 ```
 
+### MLflow UI (Recommended)
+
+#### Launch MLflow Interface
+
+```shell
+# Start MLflow UI (recommended for viewing experiments)
+python launch_mlflow_ui.py
+
+# Or directly with MLflow
+mlflow ui
+
+# Access at: http://localhost:5000
+```
+
+#### MLflow Features
+
+**Experiment Comparison**:
+
+- Side-by-side model comparison
+- Interactive metric plots
+- Parameter vs. metric analysis
+- Filter and search experiments
+
+**Model Management**:
+
+- Automatic model versioning
+- Model artifact storage
+- Deployment preparation
+- Model lineage tracking
+
+**Visualizations**:
+
+- Learning curves (for neural networks)
+- Hyperparameter importance
+- Metric distributions
+- Training progress plots
+
 ### Tracked Parameters
 
 #### Scikit-learn Models
@@ -366,13 +436,16 @@ python analyze_experiments.py --model-type transformer
 #### Run and Compare Multiple Models
 
 ```shell
-# Run experiments with different models
+# Run experiments with different models (both tracking systems active)
 python train_scikit.py model=naive_bayes
 python train_scikit.py model=logistic_regression
 python train_nn.py model.hidden_units=256
 python train_llm.py model.freeze_transformer=false
 
-# Analyze results
+# View results in MLflow UI (recommended)
+python launch_mlflow_ui.py
+
+# Or analyze with custom tools
 python analyze_experiments.py --compare
 ```
 
@@ -574,6 +647,21 @@ test_split_ratio: 0.2
 
 ## Development
 
+### Testing Training Scripts
+
+Validate that all training scripts work correctly:
+
+```shell
+# Test all training pipelines with different configurations
+python test_training_scripts.py
+
+# This tests:
+# - Scikit-learn with different feature extractors
+# - Neural networks with reduced epochs
+# - Transformers with reduced epochs
+# - Various parameter overrides
+```
+
 ### Running Tests
 
 ```shell
@@ -603,6 +691,7 @@ Key dependencies managed via `pyproject.toml`:
 
 - **Core**: `hydra-core`, `omegaconf`, `structlog`
 - **ML**: `torch`, `transformers`, `sentence-transformers`, `scikit-learn`
+- **Tracking**: `mlflow` (experiment tracking and model registry)
 - **Data**: `pandas`, `numpy`
 - **Visualization**: `matplotlib`, `seaborn`
 - **Utilities**: `tqdm`, `pydantic`

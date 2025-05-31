@@ -76,9 +76,8 @@ class ExperimentTracker:
     }
     self._save_detailed_json(detailed_data, timestamp)
 
-    logger.info(
-      f'Experiment logged: {model_type} - {experiment_data["test_accuracy"]:.4f} accuracy'
-    )
+    test_accuracy = experiment_data['test_accuracy']
+    logger.info(f'Experiment logged: {model_type} - {test_accuracy:.4f} accuracy')
 
   def _extract_scikit_params(self, cfg: DictConfig) -> Dict[str, Any]:
     """Extract scikit-learn specific parameters."""
@@ -92,13 +91,17 @@ class ExperimentTracker:
     if hasattr(cfg.model, 'alpha'):
       params['alpha'] = cfg.model.alpha
 
-    # Feature extractor parameters
-    if hasattr(cfg.feature_extractor, 'params'):
-      params['min_df'] = cfg.feature_extractor.params.get('min_df', 1)
-      params['max_df'] = cfg.feature_extractor.params.get('max_df', 1.0)
-      params['ngram_range'] = str(
-        cfg.feature_extractor.params.get('ngram_range', [1, 1])
-      )
+    # Feature extractor parameters (now directly under feature_extractor)
+    if hasattr(cfg.feature_extractor, 'min_df'):
+      params['min_df'] = cfg.feature_extractor.min_df
+    if hasattr(cfg.feature_extractor, 'max_df'):
+      params['max_df'] = cfg.feature_extractor.max_df
+    if hasattr(cfg.feature_extractor, 'ngram_range'):
+      params['ngram_range'] = str(cfg.feature_extractor.ngram_range)
+    if hasattr(cfg.feature_extractor, 'max_features'):
+      params['max_features'] = cfg.feature_extractor.max_features
+    if hasattr(cfg.feature_extractor, 'stop_words'):
+      params['stop_words'] = str(cfg.feature_extractor.stop_words)
 
     return params
 

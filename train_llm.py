@@ -15,6 +15,10 @@ from torch.utils.data import DataLoader, Dataset
 
 from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
+from mlflow_integration import MLflowHydraIntegration
+
+# Register tuple resolver for OmegaConf (to handle tuple parameters in configs)
+OmegaConf.register_new_resolver('as_tuple', lambda *args: tuple(args))
 
 logger = structlog.get_logger(__name__)
 
@@ -100,7 +104,9 @@ def create_data_loaders(
   """Create data loaders for pre-split train, validation, and test sets."""
 
   logger.info(
-    f'Train size: {len(train_texts)}, Val size: {len(val_texts)}, Test size: {len(test_texts)}'
+    f'Train size: {len(train_texts)}, '
+    f'Val size: {len(val_texts)}, '
+    f'Test size: {len(test_texts)}'
   )
 
   # Create datasets
@@ -283,9 +289,14 @@ def save_model(
 def train_transformer_pipeline(cfg: DictConfig) -> None:
   """Main training pipeline for transformer models."""
   try:
-    # Initialize experiment tracker
-    tracker = ExperimentTracker()
+    # Initialize both tracking systems
+    tracker = ExperimentTracker()  # Keep for backwards compatibility
+    mlflow_integration = MLflowHydraIntegration(cfg)
     start_time = time.time()
+
+    # Start MLflow run and log configuration
+    mlflow_integration.start_run()
+    mlflow_integration.log_hydra_config()
 
     # Print configuration
     logger.info('--- HYDRA CONFIGURATION ---')
@@ -312,6 +323,14 @@ def train_transformer_pipeline(cfg: DictConfig) -> None:
     logger.info(f'Total parameters: {model_info["total_parameters"]:,}')
     logger.info(f'Trainable parameters: {model_info["trainable_parameters"]:,}')
     logger.info(f'Frozen transformer: {model_info["frozen_transformer"]}')
+
+    # Log model metadata to MLflow
+    mlflow_integration.log_training_metadata(
+      model_name=model_info['model_name'],
+      total_parameters=model_info['total_parameters'],
+      trainable_parameters=model_info['trainable_parameters'],
+      frozen_transformer=model_info['frozen_transformer'],
+    )
 
     # Split data according to config ratios
     train_texts, train_labels, val_texts, val_labels, test_texts, test_labels = (
@@ -397,8 +416,29 @@ def train_transformer_pipeline(cfg: DictConfig) -> None:
     # Save model
     model_path = save_model(model, cfg, final_metrics)
 
-    # Log experiment results
+    # Calculate training time and log final metrics to MLflow
     training_time = time.time() - start_time
+
+    final_mlflow_metrics = {
+      'final_test_accuracy': final_metrics['accuracy'],
+      'training_time_seconds': training_time,
+    }
+
+    # Add macro-averaged metrics if available
+    report = final_metrics.get('report', {})
+    if 'macro avg' in report:
+      macro_avg = report['macro avg']
+      final_mlflow_metrics.update(
+        {
+          'precision_macro': macro_avg.get('precision', 0.0),
+          'recall_macro': macro_avg.get('recall', 0.0),
+          'f1_macro': macro_avg.get('f1-score', 0.0),
+        }
+      )
+
+    mlflow_integration.log_metrics(final_mlflow_metrics)
+
+    # Log experiment results to custom tracker (for backwards compatibility)
     tracker.log_experiment(
       cfg=cfg,
       metrics=final_metrics,
@@ -407,9 +447,13 @@ def train_transformer_pipeline(cfg: DictConfig) -> None:
       training_time=training_time,
     )
 
+    # End MLflow run
+    mlflow_integration.end_run()
+
     if model_path:
       logger.info(f'Training completed successfully. Model saved to {model_path}')
     logger.info('Experiment tracked in experiment_results/')
+    logger.info('MLflow tracking completed')
 
   except Exception as e:
     logger.error(f'Training failed with error: {str(e)}')
