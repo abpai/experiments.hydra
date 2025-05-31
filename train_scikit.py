@@ -1,12 +1,15 @@
+import time
+
 import hydra
 import pandas as pd
 import structlog
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
+from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
 
 logger = structlog.get_logger(__name__)
@@ -14,6 +17,10 @@ logger = structlog.get_logger(__name__)
 
 @hydra.main(config_path='conf', config_name='config_scikit', version_base=None)
 def train_model_pipeline(cfg: DictConfig) -> None:
+  # Initialize experiment tracker
+  tracker = ExperimentTracker()
+  start_time = time.time()
+
   # Print the entire configuration object as soon as the function starts
   logger.info('--- ENTIRE HYDRA CONFIGURATION ---')
   logger.info(OmegaConf.to_yaml(cfg))
@@ -67,14 +74,31 @@ def train_model_pipeline(cfg: DictConfig) -> None:
   predictions = active_model.predict(X_test_vec)
   accuracy = accuracy_score(y_test, predictions)
 
+  # Generate detailed classification report
+  try:
+    report = classification_report(
+      y_test, predictions, output_dict=True, zero_division=0
+    )
+  except Exception as e:
+    logger.error(f'Error generating classification report: {str(e)}')
+    report = {}
+
   logger.info('--- Evaluation Results ---')
   logger.info(f'Selected Model: {cfg.model._target_}')
   logger.info(f'Accuracy on Test Set: {accuracy:.4f}')
+
+  # Log experiment results
+  training_time = time.time() - start_time
+  metrics = {'accuracy': accuracy, 'report': report}
+  tracker.log_experiment(
+    cfg=cfg, metrics=metrics, model_type='scikit', training_time=training_time
+  )
 
   # Hydra automatically saves the configuration for this run
   # in the outputs/ directory (or multirun/ for sweeps).
   run_dir = HydraConfig.get().runtime.output_dir
   logger.info(f'\nOutput and logs saved to: {run_dir}')
+  logger.info('Experiment tracked in experiment_results/')
 
 
 if __name__ == '__main__':

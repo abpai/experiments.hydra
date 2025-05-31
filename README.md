@@ -20,6 +20,8 @@ This project demonstrates:
 - 🔄 **Easy Experimentation**: Command-line configuration overrides
 - 📈 **Comprehensive Evaluation**: Accuracy metrics and classification reports
 - 💾 **Model Persistence**: Automatic model saving with metadata
+- 📋 **Experiment Tracking**: Unified tracking and analysis across all model types
+- 📊 **Visual Analysis**: Automated plots and comparison tools
 
 ## Installation
 
@@ -60,6 +62,8 @@ experiments.hydra/
 ├── train_nn.py                 # Neural network training pipeline
 ├── train_llm.py                # LLM training pipeline
 ├── load_dataset.py             # Dataset loading utilities
+├── experiment_tracker.py       # Unified experiment tracking system
+├── analyze_experiments.py      # Experiment analysis and visualization
 ├── models/                     # Model implementations
 │   ├── embeddings.py           # Embeddings classifier model implementation
 │   └── gpt2.py                 # GPT-2 classifier model implementation
@@ -81,6 +85,9 @@ experiments.hydra/
 │       └── dummy_spam.yaml
 ├── data/                       # Dataset storage
 ├── outputs/                    # Training outputs and logs
+├── experiment_results/         # Experiment tracking results
+│   ├── experiment_results.csv  # Unified results table
+│   └── experiment_*.json       # Detailed experiment records
 └── pyproject.toml              # Project dependencies
 ```
 
@@ -267,6 +274,175 @@ outputs/
         └── models/                   # Saved models
 ```
 
+## Experiment Tracking
+
+The project includes a unified experiment tracking system that automatically logs all training runs across different model types, making it easy to compare performance and analyze results.
+
+### Automatic Tracking
+
+Every training run is automatically tracked with:
+
+- **Model performance**: Accuracy, precision, recall, F1-score
+- **Hyperparameters**: Model-specific parameters and configurations
+- **Training metadata**: Timestamps, training time, model paths
+- **Full configuration**: Complete Hydra config for reproducibility
+
+Results are saved to:
+
+- `experiment_results/experiment_results.csv` - Unified results table
+- `experiment_results/experiment_*.json` - Detailed run information
+
+### Analyzing Results
+
+#### View Overall Summary
+
+```shell
+# Show summary of all experiments
+python analyze_experiments.py
+
+# Example output:
+# ================================================================================
+# EXPERIMENT RESULTS SUMMARY
+# ================================================================================
+# Total experiments: 15
+# Model types: scikit, neural_network, transformer
+# Date range: 2024-01-15_10-30-45 to 2024-01-15_16-45-12
+```
+
+#### Compare Model Types
+
+```shell
+# Generate comparison plots
+python analyze_experiments.py --compare
+
+# Save plots to file instead of displaying
+python analyze_experiments.py --compare --save-plots model_comparison.png
+```
+
+The comparison plots include:
+
+- Accuracy distribution by model type
+- Performance over time
+- F1-score distributions
+- Top 10 performing models
+
+#### Focus on Specific Model Types
+
+```shell
+# Analyze only scikit-learn models
+python analyze_experiments.py --model-type scikit
+
+# Analyze neural networks
+python analyze_experiments.py --model-type neural_network
+
+# Analyze transformers
+python analyze_experiments.py --model-type transformer
+```
+
+### Tracked Parameters
+
+#### Scikit-learn Models
+
+- Model type and hyperparameters (C, kernel, alpha)
+- TF-IDF parameters (min_df, max_df, ngram_range)
+- Feature extraction settings
+
+#### Neural Networks
+
+- Architecture (hidden_units, dropout_p)
+- Training (learning_rate, batch_size, num_epochs)
+- Embedding model (sentence transformer)
+- Regularization (weight_decay)
+
+#### Transformers
+
+- Model name and size
+- Fine-tuning parameters (learning_rate, freeze_transformer)
+- Tokenization (max_length)
+- Training settings (batch_size, num_epochs)
+
+### Experiment Workflow Examples
+
+#### Run and Compare Multiple Models
+
+```shell
+# Run experiments with different models
+python train_scikit.py model=naive_bayes
+python train_scikit.py model=logistic_regression
+python train_nn.py model.hidden_units=256
+python train_llm.py model.freeze_transformer=false
+
+# Analyze results
+python analyze_experiments.py --compare
+```
+
+#### Hyperparameter Sweeps with Tracking
+
+```shell
+# Run parameter sweeps - all automatically tracked
+python train_scikit.py -m model=naive_bayes,logistic_regression,svm
+python train_nn.py -m model.learning_rate=0.001,0.01,0.1 model.hidden_units=64,128,256
+
+# View best results for each model type
+python analyze_experiments.py --model-type scikit
+python analyze_experiments.py --model-type neural_network
+```
+
+#### Find Best Performing Models
+
+```shell
+# View top performers across all model types
+python analyze_experiments.py
+
+# The summary shows:
+# TOP 5 PERFORMING MODELS
+# --------------------------------------------------
+# timestamp           model_type      model_class                    test_accuracy  f1_macro
+# 2024-01-15_14-30-45 transformer     GPT2Classifier                 0.9650        0.9645
+# 2024-01-15_13-15-22 neural_network  EmbeddingsClassifier           0.9580        0.9575
+# 2024-01-15_12-45-10 scikit          LogisticRegression             0.9520        0.9515
+```
+
+### Results Directory Structure
+
+```
+experiment_results/
+├── experiment_results.csv          # Unified results table
+├── experiment_2024-01-15_10-30-45.json  # Detailed run #1
+├── experiment_2024-01-15_11-15-30.json  # Detailed run #2
+└── experiment_2024-01-15_12-45-10.json  # Detailed run #3
+```
+
+### CSV Results Format
+
+The `experiment_results.csv` contains columns for easy analysis:
+
+| Column                    | Description                            |
+| ------------------------- | -------------------------------------- |
+| `timestamp`               | When the experiment was run            |
+| `model_type`              | scikit, neural_network, or transformer |
+| `model_class`             | Specific model implementation          |
+| `test_accuracy`           | Final test accuracy                    |
+| `precision_macro`         | Macro-averaged precision               |
+| `recall_macro`            | Macro-averaged recall                  |
+| `f1_macro`                | Macro-averaged F1-score                |
+| `training_time_seconds`   | Total training time                    |
+| Model-specific parameters | Varies by model type                   |
+
+### Integration with Hydra Sweeps
+
+The tracking system works seamlessly with Hydra's multirun feature:
+
+```shell
+# Run sweep - each configuration automatically tracked
+python train_nn.py -m model.learning_rate=0.001,0.01 model.hidden_units=64,128 model.dropout_p=0.3,0.5
+
+# Analyze sweep results
+python analyze_experiments.py --model-type neural_network
+```
+
+This creates individual experiment records for each combination in the sweep, making it easy to identify the best hyperparameter combinations.
+
 ## Model Performance
 
 [ TBD ]
@@ -394,6 +570,7 @@ test_split_ratio: 0.2
 - **Memory Management**: Adjust batch sizes based on available memory
 - **Early Stopping**: Use validation sets to prevent overfitting
 - **Reproducibility**: Set consistent random seeds across experiments
+- **Experiment Tracking**: All runs are automatically tracked for easy performance comparison
 
 ## Development
 
@@ -427,6 +604,7 @@ Key dependencies managed via `pyproject.toml`:
 - **Core**: `hydra-core`, `omegaconf`, `structlog`
 - **ML**: `torch`, `transformers`, `sentence-transformers`, `scikit-learn`
 - **Data**: `pandas`, `numpy`
+- **Visualization**: `matplotlib`, `seaborn`
 - **Utilities**: `tqdm`, `pydantic`
 
 ## License

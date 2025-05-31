@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -12,6 +13,7 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 
+from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
 
 logger = structlog.get_logger(__name__)
@@ -281,6 +283,10 @@ def save_model(
 def train_transformer_pipeline(cfg: DictConfig) -> None:
   """Main training pipeline for transformer models."""
   try:
+    # Initialize experiment tracker
+    tracker = ExperimentTracker()
+    start_time = time.time()
+
     # Print configuration
     logger.info('--- HYDRA CONFIGURATION ---')
     logger.info(OmegaConf.to_yaml(cfg))
@@ -390,8 +396,20 @@ def train_transformer_pipeline(cfg: DictConfig) -> None:
 
     # Save model
     model_path = save_model(model, cfg, final_metrics)
+
+    # Log experiment results
+    training_time = time.time() - start_time
+    tracker.log_experiment(
+      cfg=cfg,
+      metrics=final_metrics,
+      model_type='transformer',
+      model_path=model_path,
+      training_time=training_time,
+    )
+
     if model_path:
       logger.info(f'Training completed successfully. Model saved to {model_path}')
+    logger.info('Experiment tracked in experiment_results/')
 
   except Exception as e:
     logger.error(f'Training failed with error: {str(e)}')

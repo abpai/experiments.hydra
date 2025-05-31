@@ -177,3 +177,4 @@ pyrightconfig.json
 
 outputs/*
 data/*
+experiment_results/*

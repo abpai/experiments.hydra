@@ -1,0 +1,3527 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: *.lock
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+.cursor/
+  rules/
+    general.mdc
+    hydra-config.mdc
+    project-overview.mdc
+    troubleshooting.mdc
+conf/
+  dataset/
+    dummy_spam.yaml
+    sms_spam.yaml
+  feature_extractor/
+    sentence_transformer.yaml
+    tfidf_default.yaml
+  model/
+    embeddings_classifier.yaml
+    gpt2_classifier.yaml
+    logistic_regression.yaml
+    naive_bayes.yaml
+    svm.yaml
+  config_llm.yaml
+  config_nn.yaml
+  config_scikit.yaml
+examples/
+  embeddings.py
+  gpt2.py
+models/
+  __init__.py
+  embeddings.py
+  gpt2.py
+.cursorignore
+.gitignore
+.python-version
+analyze_experiments.py
+download_dataset.py
+experiment_tracker.py
+load_dataset.py
+pyproject.toml
+README.md
+train_llm.py
+train_nn.py
+train_scikit.py
+
+================================================================
+Files
+================================================================
+
+================
+File: .cursor/rules/general.mdc
+================
+---
+description:
+globs:
+alwaysApply: true
+---
+## Critical
+
+- Use uv as the python package manager
+
+## Python Style
+
+- Write concise, technical responses with accurate Python code.
+- Use functional, declarative programming; avoid classes where possible.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., is_active, has_permission).
+- Use lowercase with underscores for directories and files (e.g., routers/user_routes.py).
+- Favor named exports for routes and utility functions.
+- Use the Receive an Object, Return an Object (RORO) pattern.
+- Keep line length to less than 88 characters
+
+## Error Handling
+
+- Prioritize error handling and edge cases:
+  - Handle errors and edge cases at the beginning of functions.
+  - Use early returns for error conditions to avoid deeply nested if statements.
+  - Place the happy path last in the function for improved readability.
+  - Avoid unnecessary else statements; use the if-return pattern instead.
+  - Use guard clauses to handle preconditions and invalid states early.
+  - Implement proper error logging and user-friendly error messages.
+  - Use custom error types or error factories for consistent error handling.
+
+================
+File: .cursor/rules/hydra-config.mdc
+================
+---
+description:
+globs:
+alwaysApply: false
+---
+# Hydra Configuration
+
+## Configuration Structure
+
+Hydra configurations in this project follow a hierarchical structure:
+
+1. [conf/config.yaml](mdc:conf/config.yaml): Main configuration with defaults:
+   ```yaml
+   defaults:
+     - model: naive_bayes
+     - feature_extractor: tfidf_default
+     - _self_  # Allow this file to override values
+   ```
+
+2. Model configs in `conf/model/`: Defines model and parameters
+   - [naive_bayes.yaml](mdc:conf/model/naive_bayes.yaml)
+   - [logistic_regression.yaml](mdc:conf/model/logistic_regression.yaml)
+   - [svm.yaml](mdc:conf/model/svm.yaml)
+
+3. Feature extractor config:
+   - [tfidf_default.yaml](mdc:conf/feature_extractor/tfidf_default.yaml)
+
+## Package Directive
+
+Each config file declares its namespace with `@package` directive:
+
+```yaml
+# @package model
+_target_: sklearn.naive_bayes.MultinomialNB
+alpha: 1.0
+```
+
+This places all values under `cfg.model` when accessed in code.
+
+## Model Configuration
+
+Model configs follow this pattern:
+1. `_target_`: Fully qualified class name
+2. Constructor parameters (e.g., `alpha`, `C`, etc.)
+3. Metadata (e.g., `model_name`)
+
+## Instantiating Models
+
+Models are instantiated in [train.py](mdc:train.py) with:
+```python
+active_model = hydra.utils.instantiate(cfg.model)
+```
+
+This dynamically imports and instantiates the class specified by `_target_`, passing all other parameters as constructor arguments.
+
+## Common Issues
+
+- **Type Conversion**: List to tuple conversion (e.g., `ngram_range`)
+- **Non-constructor parameters**: Some config values like `model_name` aren't valid constructor parameters
+
+================
+File: .cursor/rules/project-overview.mdc
+================
+---
+description:
+globs:
+alwaysApply: false
+---
+# Hydra Experiments Project Overview
+
+This project demonstrates using Hydra for ML experiment configuration management with a spam classification example.
+
+## Project Structure
+
+- [train.py](mdc:train.py): Main script for training and evaluating models
+- `conf/`: Contains all Hydra configuration files
+  - [conf/config.yaml](mdc:conf/config.yaml): Main configuration file
+  - `conf/model/`: Model-specific configurations
+  - `conf/feature_extractor/`: Feature extraction configurations
+  - `conf/dataset/`: Dataset configurations
+
+## Key Concepts
+
+- Hydra loads configurations from YAML files and composes them
+- The main script uses `@hydra.main` decorator
+- Models are dynamically instantiated based on configuration
+- Configurations can be overridden via command line
+
+## Example Usage
+
+```bash
+# Run with default configuration
+python train.py
+
+# Run with a different model
+python train.py model=logistic_regression
+
+# Override specific parameters
+python train.py model.alpha=0.5
+```
+
+See [Hydra Configuration](mdc:.cursor/rules/hydra-config.mdc) for more details on configuration.
+
+================
+File: .cursor/rules/troubleshooting.mdc
+================
+---
+description:
+globs:
+alwaysApply: false
+---
+# Troubleshooting Hydra ML Projects
+
+## Common Issues and Solutions
+
+### 1. Package Directive Issues
+
+**Problem**: Configuration loaded under `_group_` instead of the expected namespace
+**Solution**: Change `# @package _group_` to explicitly name the package, e.g., `# @package model`
+
+### 2. Constructor Parameter Mismatch
+
+Structure config to separate constructor params from metadata:
+```yaml
+# @package model
+_target_: sklearn.naive_bayes.MultinomialNB
+params:  # Constructor parameters only
+  alpha: 1.0
+model_name: "Naive_Bayes"  # Metadata
+```
+
+### 3. Type Conversion Issues
+
+**Problem**: Parameters loaded from YAML as lists when tuples are required (e.g., `ngram_range`)
+
+**Solution**: Convert types explicitly:
+```python
+vectorizer_params = {**cfg.feature_extractor.params}
+vectorizer_params["ngram_range"] = tuple(vectorizer_params["ngram_range"])
+vectorizer = TfidfVectorizer(**vectorizer_params)
+```
+
+================
+File: conf/dataset/dummy_spam.yaml
+================
+# @package dataset
+
+name: "dummy_spam"
+path: "data/dummy_spam.csv" # Path relative to project root (not used for dummy data)
+test_split_ratio: 0.2
+validation_split_ratio: 0.1 # For early stopping and hyperparameter tuning
+text_column: "text" # Column containing the SMS text
+label_column: "label" # Column containing the spam/ham labels
+label_mapping: # Maps text labels to numeric values
+  ham: 0
+  spam: 1
+
+================
+File: conf/dataset/sms_spam.yaml
+================
+# @package dataset
+
+name: "sms_spam"
+path: "data/spam.csv" # Path relative to project root
+test_split_ratio: 0.2
+validation_split_ratio: 0.1 # For early stopping and hyperparameter tuning
+text_column: "v2" # Column containing the SMS text
+label_column: "v1" # Column containing the spam/ham labels
+label_mapping: # Maps text labels to numeric values
+  ham: 0
+  spam: 1
+
+================
+File: conf/feature_extractor/sentence_transformer.yaml
+================
+# @package feature_extractor
+
+# Configuration for sentence-transformers
+_target_: sentence_transformers.SentenceTransformer
+
+# Direct parameters for SentenceTransformer.__init__
+model_name_or_path: "all-MiniLM-L6-v2"
+
+# Parameters for the .encode() method - these will be accessed in code
+encode_params:
+  batch_size: 32 # Batch size for encoding
+
+================
+File: conf/feature_extractor/tfidf_default.yaml
+================
+# This defines parameters for TfidfVectorizer.
+# It doesn't have a _target_ here because we are manually creating
+# TfidfVectorizer in the script and passing these params.
+# Alternatively, you could add a _target_ and instantiate it with Hydra.
+
+# The `# @package _group_` directive is not strictly needed here as it's implicitly
+# part of the 'feature_extractor' group by its location, but good for clarity if moved.
+
+params:
+  min_df: 1 # Minimum document frequency
+  max_df: 1.0 # Maximum document frequency (proportion)
+  ngram_range: [1, 1] # Use only unigrams
+  # stop_words: 'english' # Example: uncomment to use stop words
+
+================
+File: conf/model/embeddings_classifier.yaml
+================
+# @package model
+
+_target_: models.embeddings.EmbeddingsClassifier
+
+embedding_dim: 384 # Default output dimension for all-MiniLM-L6-v2
+hidden_units: 128
+num_of_classes: 2
+dropout_p: 0.5
+
+# Training parameters
+learning_rate: 1e-3
+weight_decay: 1e-5
+batch_size: 32
+num_epochs: 5
+random_state: ${experiment.random_seed}
+
+================
+File: conf/model/gpt2_classifier.yaml
+================
+# @package model
+# Note: Despite the filename, this is actually an MLP classifier, not a transformer
+
+_target_: models.gpt2.GPT2Classifier
+
+# GPT-2 model configuration
+model_name: "gpt2" # Can be "gpt2", "gpt2-medium", "gpt2-large", "gpt2-xl"
+num_of_classes: 2
+dropout_p: 0.1
+freeze_transformer: true # Set to false to train the entire model
+max_length: 512
+
+# Training parameters optimized for transformer fine-tuning
+learning_rate: 2e-5 # Lower learning rate typical for pre-trained transformers
+weight_decay: 0.01
+batch_size: 8 # Smaller batch size due to memory requirements
+num_epochs: 3 # Fewer epochs typically needed for fine-tuning
+random_state: ${experiment.random_seed}
+
+================
+File: conf/model/logistic_regression.yaml
+================
+# @package model
+
+_target_: sklearn.linear_model.LogisticRegression
+
+# Hyperparameters for Logistic Regression
+C: 1.0
+solver: "liblinear" # Good default for small datasets, supports L1/L2
+max_iter: 100
+# Example of referencing another config value (random_seed from experiment block)
+random_state: ${experiment.random_seed}
+
+================
+File: conf/model/naive_bayes.yaml
+================
+# @package model
+
+_target_: sklearn.naive_bayes.MultinomialNB
+
+# Hyperparameters for Multinomial Naive Bayes
+alpha: 1.0 # Additive (Laplace/Lidstone) smoothing parameter
+
+================
+File: conf/model/svm.yaml
+================
+# @package model
+
+_target_: sklearn.svm.SVC
+
+# Hyperparameters for Support Vector Classifier
+C: 1.0
+kernel: "rbf"
+probability: True # Useful if you need probability estimates later
+random_state: ${experiment.random_seed}
+
+================
+File: conf/config_llm.yaml
+================
+defaults:
+  - dataset: sms_spam
+  - model: gpt2_classifier
+  - _self_
+
+experiment:
+  name: "transformer_spam_classification"
+  random_seed: 1337 # For reproducibility
+
+# Early stopping configuration for transformers
+early_stopping_patience: 5 # Shorter patience for fine-tuning
+
+hydra:
+  run:
+    dir: outputs/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: multirun/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}_${hydra.job.override_dirname}
+
+================
+File: conf/config_nn.yaml
+================
+defaults:
+  - dataset: sms_spam
+  - model: embeddings_classifier
+  - feature_extractor: sentence_transformer
+  - _self_
+
+experiment:
+  name: "nn_spam_classification"
+  random_seed: 1337 # For reproducibility
+
+hydra:
+  run:
+    dir: outputs/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: multirun/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}_${hydra.job.override_dirname}
+
+================
+File: conf/config_scikit.yaml
+================
+defaults:
+  - dataset: sms_spam
+  - model: naive_bayes
+  - feature_extractor: tfidf_default
+  - _self_ # Allows this file to also set values
+
+experiment:
+  name: "spam_classification_experiment"
+  random_seed: 1337 # For reproducibility
+
+hydra:
+  run:
+    dir: outputs/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: multirun/${experiment.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}_${hydra.job.override_dirname}
+
+================
+File: examples/embeddings.py
+================
+#!/usr/bin/env python3
+"""
+This script demonstrates all-MiniLM-L6-v2 (Sentence Transformer)
+used for FEATURE EXTRACTION
+"""
+
+import logging
+
+import torch
+import torch.nn as nn
+from sentence_transformers import SentenceTransformer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class SimpleClassifier(nn.Module):
+  def __init__(self, embedding_dim, num_classes):
+    super().__init__()
+    self.classifier = nn.Sequential(
+      nn.Linear(embedding_dim, 128), nn.ReLU(), nn.Linear(128, num_classes)
+    )
+
+  def forward(self, embeddings):
+    return self.classifier(embeddings)
+
+
+def demonstrate_sentence_transformer_pipeline():
+  """
+  PIPELINE 1: all-MiniLM-L6-v2 as FEATURE EXTRACTOR
+
+  Text → [Sentence Transformer] → Embeddings → [Simple Neural Net] → Predictions
+
+  This is used in train_nn.py
+  """
+  logger.info('\n' + '=' * 60)
+  logger.info('PIPELINE 1: all-MiniLM-L6-v2 as FEATURE EXTRACTOR')
+  logger.info('=' * 60)
+
+  # Sample texts
+  texts = [
+    'Free money! Click here now!',
+    'Hi, how are you doing today?',
+    "URGENT: You've won $1000!",
+  ]
+
+  logger.info('Step 1: Load Sentence Transformer (FEATURE EXTRACTOR)')
+  # This model ONLY does feature extraction - it doesn't make predictions
+  feature_extractor = SentenceTransformer('all-MiniLM-L6-v2')
+  logger.info(f'Model loaded: {feature_extractor}')
+
+  logger.info('\nStep 2: Convert text to embeddings')
+  # This converts text to fixed-size vectors (384 dimensions)
+  embeddings = feature_extractor.encode(texts)
+  logger.info(f'Input texts: {len(texts)}')
+  logger.info(f'Output embeddings shape: {embeddings.shape}')
+  logger.info(f'Each text becomes a {embeddings.shape[1]}-dimensional vector')
+
+  logger.info('\nStep 3: Create a separate classifier')
+
+  classifier = SimpleClassifier(embedding_dim=384, num_classes=2)
+  logger.info(f'Classifier created: {classifier}')
+
+  logger.info('\nStep 4: Make predictions')
+  # Convert embeddings to predictions
+  with torch.no_grad():
+    embeddings_tensor = torch.FloatTensor(embeddings)
+    logits = classifier(embeddings_tensor)
+    predictions = torch.softmax(logits, dim=1)
+
+  logger.info(f'Predictions shape: {predictions.shape}')
+  logger.info('Pipeline: Text → Embeddings → Predictions')
+
+  # Show the two-step process
+  logger.info('\n📋 SUMMARY - Two-Step Process:')
+  logger.info('1. Sentence Transformer: Text → Fixed embeddings (384-dim)')
+  logger.info('2. Neural Network: Embeddings → Class predictions')
+  logger.info('✅ Used in: train_nn.py with config_nn.yaml')
+
+
+if __name__ == '__main__':
+  demonstrate_sentence_transformer_pipeline()
+
+================
+File: examples/gpt2.py
+================
+#!/usr/bin/env python3
+"""
+This script demonstrates all-MiniLM-L6-v2 (Sentence Transformer)
+used for FEATURE EXTRACTION
+"""
+
+import logging
+
+import torch
+import torch.nn as nn
+from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class GPT2Classifier(nn.Module):
+  def __init__(self, model_name: str = 'gpt2', num_of_classes: int = 2, **kwargs):
+    super().__init__()
+    self.model_name = model_name
+    self.config = GPT2Config.from_pretrained(model_name)
+    self.config.num_labels = num_of_classes
+    self.gpt2 = GPT2Model.from_pretrained(model_name, config=self.config)
+    self.classifier = nn.Linear(self.config.n_embd, num_of_classes)
+
+    self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    if self.tokenizer.pad_token is None:
+      self.tokenizer.pad_token = self.tokenizer.eos_token
+
+  def forward(self, input_ids, attention_mask):
+    outputs = self.gpt2(input_ids, attention_mask=attention_mask, return_dict=True)
+
+    last_hidden_state = outputs.last_hidden_state
+    # -1 is last token
+    # from: (batch_size, sequence_length, hidden_size)
+    # to: (batch_size, hidden_size)
+    last_token_hidden_state = last_hidden_state[:, -1, :]
+    logits = self.classifier(last_token_hidden_state)
+    return logits
+
+def demonstrate_gpt2_pipeline():
+  """
+  PIPELINE 2: GPT-2 MODEL
+
+  Text → [GPT-2 + Classification Head] → Predictions
+  """
+  logger.info('\n' + '=' * 60)
+  logger.info('PIPELINE 2: GPT-2 as END-TO-END MODEL')
+  logger.info('=' * 60)
+
+  # Sample texts
+  texts = [
+    'Free money! Click here now!',
+    'Hi, how are you doing today?',
+    "URGENT: You've won $1000!",
+  ]
+
+  model_name = 'gpt2'
+  num_classes = 2
+
+  logger.info('\nStep 1: Initialize GPT2Classifier')
+  model = GPT2Classifier(model_name, num_classes)
+
+  logger.info('\nStep 2: Convert text to token ids')
+  encoded_inputs = model.tokenizer(
+    texts,
+    padding=True,  # Pad to longest sequence in batch
+    truncation=True,  # Truncate to model max length
+    return_tensors='pt',
+  )
+  input_ids = encoded_inputs['input_ids']
+  attention_mask = encoded_inputs['attention_mask']
+  logger.info(f'Token IDs shape: {input_ids.shape}')
+
+  logger.info('\nStep 3: Forward pass')
+  logits = model(input_ids, attention_mask=attention_mask)
+  logger.info(f'Logits shape: {logits.shape}')
+
+  logger.info('\nStep 4: Predict')
+  # Linear layer is not actually trained so
+  # results are not actually meaningful
+  predictions = torch.argmax(logits, dim=1)
+  probabilities = torch.softmax(logits, dim=1)
+  logger.info(f'Predictions: {predictions}')
+  logger.info(f'Probabilities: {probabilities}')
+
+
+if __name__ == '__main__':
+  demonstrate_gpt2_pipeline()
+
+================
+File: models/__init__.py
+================
+
+
+================
+File: models/embeddings.py
+================
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+
+class EmbeddingsClassifier(nn.Module):
+  """
+  Simple neural network classifier with flexible binary/multi-class support.
+
+  Features:
+  - Adaptive loss function selection based on number of classes
+  - Dropout regularization
+  - Configurable architecture
+  """
+
+  def __init__(
+    self,
+    embedding_dim: int,
+    hidden_units: int,
+    num_of_classes: int = 2,
+    dropout_p: float = 0.5,
+    learning_rate: float = 1e-3,
+    weight_decay: float = 1e-5,
+    batch_size: int = 32,
+    num_epochs: int = 5,
+    **kwargs,
+  ):
+    super().__init__()
+
+    # Input validation
+    if embedding_dim <= 0 or hidden_units <= 0 or num_of_classes <= 0:
+      raise ValueError('Dimensions must be positive integers')
+    if not 0 <= dropout_p <= 1:
+      raise ValueError('Dropout probability must be between 0 and 1')
+    if learning_rate <= 0:
+      raise ValueError('Learning rate must be positive')
+
+    # Network layers
+    self.linear1 = nn.Linear(embedding_dim, hidden_units)
+    self.relu = nn.ReLU()
+    self.dropout = nn.Dropout(p=dropout_p)
+    self.linear2 = nn.Linear(hidden_units, num_of_classes)
+
+    # Store parameters for training
+    self.learning_rate = learning_rate
+    self.weight_decay = weight_decay
+    self.batch_size = batch_size
+    self.num_epochs = num_epochs
+    self.num_of_classes = num_of_classes
+
+    # Loss function selection
+    self.loss_fn = self._select_loss_function(num_of_classes)
+
+    # Device selection and model placement
+    self.device = self._get_device()
+    self.to(self.device)
+
+  def _get_device(self) -> torch.device:
+    """Automatically select the best available device."""
+    if torch.cuda.is_available():
+      return torch.device('cuda')
+    elif torch.backends.mps.is_available():
+      return torch.device('mps')
+    else:
+      return torch.device('cpu')
+
+  def _select_loss_function(self, num_classes: int) -> nn.Module:
+    """Select appropriate loss function based on number of classes."""
+    if num_classes == 1:
+      return nn.BCEWithLogitsLoss()
+    elif num_classes == 2:
+      return nn.CrossEntropyLoss()
+    else:
+      return nn.CrossEntropyLoss()
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    """Forward pass through the network."""
+    x = x.to(self.device)
+    x = self.linear1(x)
+    x = self.relu(x)
+    x = self.dropout(x)
+    x = self.linear2(x)
+    return x
+
+  def configure_optimizer(self) -> torch.optim.Optimizer:
+    """Configure the optimizer for training."""
+    return optim.Adam(
+      self.parameters(),
+      lr=self.learning_rate,
+      weight_decay=self.weight_decay,
+    )
+
+  def training_step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    """Compute loss for a training batch."""
+    x, y = batch
+    x, y = x.to(self.device), y.to(self.device)
+    logits = self(x)
+
+    # Handle different loss function requirements
+    if isinstance(self.loss_fn, nn.BCEWithLogitsLoss):
+      if logits.dim() > 1 and logits.shape[1] == 1:
+        logits = logits.squeeze()
+      loss = self.loss_fn(logits, y.float())
+    else:
+      loss = self.loss_fn(logits, y)
+    return loss
+
+  def predict(self, x: torch.Tensor) -> torch.Tensor:
+    """Generate predictions for input data."""
+    self.eval()
+    with torch.no_grad():
+      x = x.to(self.device)
+      logits = self(x)
+
+      if self.num_of_classes == 1 or (logits.dim() > 1 and logits.shape[1] == 1):
+        # Binary classification with single output
+        return (torch.sigmoid(logits.squeeze()) > 0.5).long()
+      else:
+        # Multi-class classification
+        return torch.argmax(logits, dim=1)
+
+  def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
+    """Generate class probabilities for input data."""
+    self.eval()
+    with torch.no_grad():
+      x = x.to(self.device)
+      logits = self(x)
+
+      if self.num_of_classes == 1 or (logits.dim() > 1 and logits.shape[1] == 1):
+        # Binary classification
+        probs = torch.sigmoid(logits.squeeze())
+        if probs.dim() == 0:
+          probs = probs.unsqueeze(0)
+        return torch.stack([1 - probs, probs], dim=1)
+      else:
+        # Multi-class classification
+        return torch.softmax(logits, dim=1)
+
+================
+File: models/gpt2.py
+================
+import logging
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from transformers import GPT2Config, GPT2Model, GPT2Tokenizer
+
+# Suppress transformers warnings for cleaner output
+logging.getLogger('transformers').setLevel(logging.ERROR)
+
+
+class GPT2Classifier(nn.Module):
+  """
+  Real transformer-based classifier using GPT-2 architecture.
+
+  Uses a pre-trained GPT-2 model with a custom classification head.
+  The transformer layers can be frozen or fine-tuned.
+  """
+
+  def __init__(
+    self,
+    model_name: str = 'gpt2',  # Can be "gpt2", "gpt2-medium", etc.
+    num_of_classes: int = 2,
+    dropout_p: float = 0.1,
+    freeze_transformer: bool = True,
+    max_length: int = 512,
+    learning_rate: float = 2e-5,  # Lower LR typical for transformer fine-tuning
+    weight_decay: float = 0.01,
+    batch_size: int = 16,  # Smaller batch size for memory efficiency
+    num_epochs: int = 3,  # Fewer epochs typical for fine-tuning
+    **kwargs,
+  ):
+    super().__init__()
+
+    # Input validation
+    if num_of_classes <= 0:
+      raise ValueError('Number of classes must be positive')
+    if not 0 <= dropout_p <= 1:
+      raise ValueError('Dropout probability must be between 0 and 1')
+    if max_length <= 0:
+      raise ValueError('Max length must be positive')
+
+    # Load pre-trained GPT-2 model and tokenizer
+    try:
+      self.config = GPT2Config.from_pretrained(model_name)
+      self.transformer = GPT2Model.from_pretrained(model_name)
+      self.tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+
+      # Add padding token if it doesn't exist
+      if self.tokenizer.pad_token is None:
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+
+    except Exception as e:
+      raise RuntimeError(f"Failed to load model '{model_name}': {e}")
+
+    # Store parameters
+    self.num_of_classes = num_of_classes
+    self.max_length = max_length
+    self.learning_rate = learning_rate
+    self.weight_decay = weight_decay
+    self.batch_size = batch_size
+    self.num_epochs = num_epochs
+    self.freeze_transformer = freeze_transformer
+
+    # Freeze transformer layers strategically
+    # Based on "Finetuning Large Language Models" by Sebastian Raschka
+    # (https://magazine.sebastianraschka.com/p/finetuning-large-language-models)
+    # Most gains can be achieved by only training the last transformer block
+    # and final layers
+
+    # Always freeze all transformer parameters initially
+    for param in self.transformer.parameters():
+      param.requires_grad = False
+
+    # If not freezing transformer, only unfreeze the last transformer block
+    # and final layer norm
+    if not freeze_transformer:
+      # Unfreeze the last transformer block (most effective for finetuning)
+      if hasattr(self.transformer, 'h') and len(self.transformer.h) > 0:
+        for param in self.transformer.h[-1].parameters():
+          param.requires_grad = True
+
+      # Unfreeze the final layer norm (part of the "last 2 layers")
+      if hasattr(self.transformer, 'ln_f'):
+        for param in self.transformer.ln_f.parameters():
+          param.requires_grad = True
+
+    # Classification head
+    hidden_size = self.config.n_embd
+    self.classifier = nn.Sequential(
+      nn.Dropout(dropout_p),
+      nn.Linear(hidden_size, hidden_size // 2),
+      nn.ReLU(),
+      nn.Dropout(dropout_p),
+      nn.Linear(hidden_size // 2, num_of_classes),
+    )
+
+    # Loss function
+    self.loss_fn = nn.CrossEntropyLoss()
+
+    # Device selection and model placement
+    self.device = self._get_device()
+    self.to(self.device)
+
+    # Cache for tokenized inputs to avoid re-tokenizing
+    self._input_cache = {}
+
+  def _get_device(self) -> torch.device:
+    """Automatically select the best available device."""
+    if torch.cuda.is_available():
+      return torch.device('cuda')
+    elif torch.backends.mps.is_available():
+      return torch.device('mps')
+    else:
+      return torch.device('cpu')
+
+  def tokenize_texts(self, texts: list) -> dict[str, torch.Tensor]:
+    """Tokenize input texts."""
+    # Convert single text to list
+    if isinstance(texts, str):
+      texts = [texts]
+
+    # Tokenize with padding and truncation
+    tokenized = self.tokenizer(
+      texts,
+      padding=True,
+      truncation=True,
+      max_length=self.max_length,
+      return_tensors='pt',
+    )
+
+    return tokenized
+
+  def forward(
+    self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+  ) -> torch.Tensor:
+    """Forward pass through the transformer and classification head."""
+    # Ensure tensors are on the correct device
+    input_ids = input_ids.to(self.device)
+    attention_mask = attention_mask.to(self.device)
+
+    # Get transformer outputs
+    transformer_outputs = self.transformer(
+      input_ids=input_ids, attention_mask=attention_mask
+    )
+
+    # Use the last hidden state of the last token (like GPT-2 for classification)
+    last_hidden_states = transformer_outputs.last_hidden_state
+
+    # Get the representation of the last non-padding token for each sequence
+    # Find the last non-padding token for each sequence
+    batch_size = input_ids.shape[0]
+    sequence_lengths = attention_mask.sum(dim=1) - 1  # -1 for 0-indexing
+    last_token_hidden = last_hidden_states[torch.arange(batch_size), sequence_lengths]
+
+    # Pass through classification head
+    logits = self.classifier(last_token_hidden)
+
+    return logits
+
+  def forward_from_texts(self, texts: list) -> torch.Tensor:
+    """Forward pass directly from text inputs."""
+    tokenized = self.tokenize_texts(texts)
+    input_ids = tokenized['input_ids'].to(self.device)
+    attention_mask = tokenized['attention_mask'].to(self.device)
+
+    return self.forward(input_ids, attention_mask)
+
+  def configure_optimizer(self) -> torch.optim.Optimizer:
+    """
+    Configure optimizer with different learning rates for transformer and classifier.
+
+    The transformer is frozen by default, so we use a lower learning rate for it.
+    The classifier is trained with a higher learning rate.
+    """
+    # Different learning rates for transformer and classification head
+    transformer_params = []
+    classifier_params = []
+
+    for name, param in self.named_parameters():
+      if param.requires_grad:
+        if 'transformer' in name:
+          transformer_params.append(param)
+        else:
+          classifier_params.append(param)
+
+    # Use lower learning rate for pre-trained transformer
+    optimizer_params = [
+      {'params': transformer_params, 'lr': self.learning_rate},
+      {
+        'params': classifier_params,
+        'lr': self.learning_rate * 10,
+      },  # Higher LR for new layers
+    ]
+
+    return optim.AdamW(optimizer_params, weight_decay=self.weight_decay)
+
+  def training_step(
+    self, batch: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+  ) -> torch.Tensor:
+    """Compute loss for a training batch."""
+    input_ids, attention_mask, labels = batch
+
+    # Move batch to device
+    input_ids = input_ids.to(self.device)
+    attention_mask = attention_mask.to(self.device)
+    labels = labels.to(self.device)
+
+    logits = self.forward(input_ids, attention_mask)
+    loss = self.loss_fn(logits, labels)
+
+    return loss
+
+  def predict(self, texts: list) -> torch.Tensor:
+    """Generate predictions for input texts."""
+    self.eval()
+    with torch.no_grad():
+      logits = self.forward_from_texts(texts)
+      return torch.argmax(logits, dim=1)
+
+  def predict_proba(self, texts: list) -> torch.Tensor:
+    """Generate class probabilities for input texts."""
+    self.eval()
+    with torch.no_grad():
+      logits = self.forward_from_texts(texts)
+      return torch.softmax(logits, dim=1)
+
+  def get_model_info(self) -> dict[str, any]:
+    """Get information about the model."""
+    total_params = sum(p.numel() for p in self.parameters())
+    trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    return {
+      'model_name': self.config.name_or_path
+      if hasattr(self.config, 'name_or_path')
+      else 'gpt2',
+      'total_parameters': total_params,
+      'trainable_parameters': trainable_params,
+      'frozen_transformer': self.freeze_transformer,
+      'max_length': self.max_length,
+      'num_classes': self.num_of_classes,
+    }
+
+================
+File: .cursorignore
+================
+outputs/
+data/
+.venv/
+.gitignore
+.git/
+
+================
+File: .gitignore
+================
+# Created by https://www.toptal.com/developers/gitignore/api/python
+# Edit at https://www.toptal.com/developers/gitignore?templates=python
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+### Python Patch ###
+# Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
+poetry.toml
+
+# ruff
+.ruff_cache/
+
+# LSP config files
+pyrightconfig.json
+
+# End of https://www.toptal.com/developers/gitignore/api/python
+
+outputs/*
+data/*
+experiment_results/*
+
+================
+File: .python-version
+================
+3.12.8
+
+================
+File: analyze_experiments.py
+================
+#!/usr/bin/env python3
+"""
+Experiment Results Analysis Tool
+
+Usage:
+    python analyze_experiments.py --top-n 10
+    python analyze_experiments.py --model-type scikit
+    python analyze_experiments.py --compare
+"""
+
+import argparse
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import structlog
+
+from experiment_tracker import ExperimentTracker
+
+logger = structlog.get_logger(__name__)
+
+
+def setup_plotting():
+  """Setup matplotlib and seaborn for better plots."""
+  plt.style.use('default')
+  sns.set_palette('husl')
+  plt.rcParams['figure.figsize'] = (12, 8)
+
+
+def plot_model_comparison(df: pd.DataFrame, save_path: Path = None):
+  """Create comparison plots for different model types."""
+  if len(df) == 0:
+    logger.warning('No data to plot')
+    return
+
+  setup_plotting()
+
+  # Create subplots
+  fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+  fig.suptitle('Model Performance Comparison', fontsize=16)
+
+  # 1. Accuracy by model type
+  ax1 = axes[0, 0]
+  df.boxplot(column='test_accuracy', by='model_type', ax=ax1)
+  ax1.set_title('Test Accuracy by Model Type')
+  ax1.set_xlabel('Model Type')
+  ax1.set_ylabel('Test Accuracy')
+
+  # 2. Accuracy over time
+  ax2 = axes[0, 1]
+  df['timestamp'] = pd.to_datetime(df['timestamp'])
+  for model_type in df['model_type'].unique():
+    model_data = df[df['model_type'] == model_type]
+    ax2.plot(
+      model_data['timestamp'],
+      model_data['test_accuracy'],
+      marker='o',
+      label=model_type,
+      alpha=0.7,
+    )
+  ax2.set_title('Accuracy Over Time')
+  ax2.set_xlabel('Timestamp')
+  ax2.set_ylabel('Test Accuracy')
+  ax2.legend()
+  ax2.tick_params(axis='x', rotation=45)
+
+  # 3. F1 Score distribution
+  ax3 = axes[1, 0]
+  model_types = df['model_type'].unique()
+  for i, model_type in enumerate(model_types):
+    model_data = df[df['model_type'] == model_type]['f1_macro']
+    ax3.hist(model_data, alpha=0.6, label=model_type, bins=10)
+  ax3.set_title('F1 Score Distribution')
+  ax3.set_xlabel('F1 Score (Macro)')
+  ax3.set_ylabel('Count')
+  ax3.legend()
+
+  # 4. Top performing models
+  ax4 = axes[1, 1]
+  top_10 = df.nlargest(10, 'test_accuracy')
+  bars = ax4.bar(range(len(top_10)), top_10['test_accuracy'])
+  ax4.set_title('Top 10 Models by Accuracy')
+  ax4.set_xlabel('Model Rank')
+  ax4.set_ylabel('Test Accuracy')
+
+  # Color bars by model type
+  colors = plt.cm.Set1(range(len(top_10['model_type'].unique())))
+  color_map = dict(zip(top_10['model_type'].unique(), colors))
+  for bar, model_type in zip(bars, top_10['model_type']):
+    bar.set_color(color_map[model_type])
+
+  # Add legend for model types
+  legend_elements = [
+    plt.Rectangle((0, 0), 1, 1, color=color_map[mt], label=mt)
+    for mt in color_map.keys()
+  ]
+  ax4.legend(handles=legend_elements)
+
+  plt.tight_layout()
+
+  if save_path:
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    logger.info(f'Plot saved to {save_path}')
+  else:
+    plt.show()
+
+
+def print_summary_table(df: pd.DataFrame):
+  """Print a formatted summary table."""
+  if len(df) == 0:
+    logger.warning('No data to summarize')
+    return
+
+  print('\n' + '=' * 80)
+  print('EXPERIMENT RESULTS SUMMARY')
+  print('=' * 80)
+
+  # Overall stats
+  print(f'Total experiments: {len(df)}')
+  print(f'Model types: {", ".join(df["model_type"].unique())}')
+  print(f'Date range: {df["timestamp"].min()} to {df["timestamp"].max()}')
+
+  print('\n' + '-' * 50)
+  print('PERFORMANCE BY MODEL TYPE')
+  print('-' * 50)
+
+  summary = (
+    df.groupby('model_type')
+    .agg(
+      {
+        'test_accuracy': ['count', 'mean', 'std', 'max'],
+        'f1_macro': ['mean', 'max'],
+        'precision_macro': ['mean', 'max'],
+        'recall_macro': ['mean', 'max'],
+      }
+    )
+    .round(4)
+  )
+
+  print(summary)
+
+  print('\n' + '-' * 50)
+  print('TOP 5 PERFORMING MODELS')
+  print('-' * 50)
+
+  top_5 = df.nlargest(5, 'test_accuracy')[
+    ['timestamp', 'model_type', 'model_class', 'test_accuracy', 'f1_macro']
+  ]
+
+  print(top_5.to_string(index=False))
+
+
+def print_model_type_details(df: pd.DataFrame, model_type: str):
+  """Print detailed results for a specific model type."""
+  model_data = df[df['model_type'] == model_type]
+
+  if len(model_data) == 0:
+    logger.warning(f'No data found for model type: {model_type}')
+    return
+
+  print('\n' + '=' * 60)
+  print(f'DETAILED RESULTS: {model_type.upper()}')
+  print('=' * 60)
+
+  # Best result
+  best = model_data.loc[model_data['test_accuracy'].idxmax()]
+  print(f'Best accuracy: {best["test_accuracy"]:.4f}')
+  print(f'Best model: {best["model_class"]}')
+  print(f'Timestamp: {best["timestamp"]}')
+
+  # All results sorted by accuracy
+  print(f'\nAll {model_type} results (sorted by accuracy):')
+  print('-' * 40)
+
+  columns = ['timestamp', 'model_class', 'test_accuracy', 'f1_macro']
+  if model_type == 'scikit':
+    columns.extend(['C', 'kernel', 'min_df', 'max_df'])
+  elif model_type == 'neural_network':
+    columns.extend(['hidden_units', 'learning_rate', 'batch_size'])
+  elif model_type == 'transformer':
+    columns.extend(['transformer_model', 'learning_rate', 'freeze_transformer'])
+
+  available_columns = [col for col in columns if col in model_data.columns]
+  sorted_results = model_data.sort_values('test_accuracy', ascending=False)[
+    available_columns
+  ]
+
+  print(sorted_results.to_string(index=False))
+
+
+def main():
+  parser = argparse.ArgumentParser(description='Analyze experiment results')
+  parser.add_argument(
+    '--top-n', type=int, default=10, help='Number of top results to show'
+  )
+  parser.add_argument(
+    '--model-type',
+    choices=['scikit', 'neural_network', 'transformer'],
+    help='Focus on specific model type',
+  )
+  parser.add_argument('--compare', action='store_true', help='Show comparison plots')
+  parser.add_argument(
+    '--save-plots', type=str, help='Save plots to file instead of showing'
+  )
+
+  args = parser.parse_args()
+
+  # Initialize tracker and load data
+  tracker = ExperimentTracker()
+
+  if args.model_type:
+    df = tracker.get_best_results(model_type=args.model_type)
+    print_model_type_details(df, args.model_type)
+  else:
+    df = tracker.get_best_results()
+    print_summary_table(df)
+
+    if args.compare and len(df) > 0:
+      save_path = Path(args.save_plots) if args.save_plots else None
+      plot_model_comparison(df, save_path)
+
+
+if __name__ == '__main__':
+  main()
+
+================
+File: download_dataset.py
+================
+import os
+from pathlib import Path
+
+import pandas as pd
+import requests
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+# Dataset URL
+SMS_SPAM_URL = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip'
+
+
+def download_sms_spam_dataset():
+  """Download the SMS Spam Collection dataset from UCI ML Repository."""
+  # Create data directory if it doesn't exist
+  data_dir = Path('data')
+  data_dir.mkdir(exist_ok=True)
+
+  # Target files
+  zip_path = data_dir / 'smsspamcollection.zip'
+  csv_path = data_dir / 'spam.csv'
+
+  # Skip if the CSV already exists
+  if csv_path.exists():
+    logger.info(f'Dataset already exists at {csv_path}')
+    return csv_path
+
+  # Download the dataset
+  logger.info(f'Downloading SMS Spam Collection dataset from {SMS_SPAM_URL}')
+
+  try:
+    response = requests.get(SMS_SPAM_URL)
+    response.raise_for_status()
+
+    with open(zip_path, 'wb') as f:
+      f.write(response.content)
+
+    logger.info(f'Dataset downloaded to {zip_path}')
+
+    # Extract and process the dataset
+    import zipfile
+
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+      zip_ref.extractall(data_dir)
+
+    # The extracted file is named 'SMSSpamCollection'
+    raw_file = data_dir / 'SMSSpamCollection'
+
+    # Convert to CSV
+    if raw_file.exists():
+      # The file has no header and is tab-separated
+      # Format: <label>\t<text>
+      with open(raw_file, 'r', encoding='latin-1') as f:
+        lines = f.readlines()
+
+      # Create DataFrame
+      data = []
+      for line in lines:
+        parts = line.strip().split('\t', 1)
+        if len(parts) == 2:
+          label, text = parts
+          data.append([label, text])
+
+      df = pd.DataFrame(data, columns=['v1', 'v2'])
+
+      # Save to CSV
+      df.to_csv(csv_path, index=False)
+      logger.info(f'Processed dataset saved to {csv_path}')
+
+      # Clean up temporary files
+      if zip_path.exists():
+        os.remove(zip_path)
+      if raw_file.exists():
+        os.remove(raw_file)
+
+      return csv_path
+    else:
+      logger.error(f'Extracted file not found: {raw_file}')
+      return None
+
+  except Exception as e:
+    logger.error(f'Error downloading dataset: {str(e)}')
+    return None
+
+
+if __name__ == '__main__':
+  dataset_path = download_sms_spam_dataset()
+
+  if dataset_path:
+    # Preview the dataset
+    df = pd.read_csv(dataset_path)
+    logger.info('\nDataset preview:')
+    logger.info(f'Total samples: {len(df)}')
+    logger.info(f'Class distribution: {df["v1"].value_counts().to_dict()}')
+    logger.info('\nFirst 5 samples:')
+    logger.info(df.head())
+  else:
+    logger.error('Failed to download dataset.')
+
+================
+File: experiment_tracker.py
+================
+import json
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import pandas as pd
+import structlog
+from omegaconf import DictConfig, OmegaConf
+
+logger = structlog.get_logger(__name__)
+
+
+class ExperimentTracker:
+  """Unified experiment tracking across different model types."""
+
+  def __init__(self, results_file: str = 'experiment_results.csv'):
+    self.results_file = Path(results_file)
+    self.results_dir = Path('experiment_results')
+    self.results_dir.mkdir(exist_ok=True)
+
+  def log_experiment(
+    self,
+    cfg: DictConfig,
+    metrics: Dict[str, Any],
+    model_type: str,
+    model_path: Optional[Path] = None,
+    training_time: Optional[float] = None,
+  ) -> None:
+    """Log experiment results to both CSV and detailed JSON."""
+
+    # Extract key information
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+    # Basic experiment info
+    experiment_data = {
+      'timestamp': timestamp,
+      'model_type': model_type,
+      'experiment_name': cfg.experiment.name,
+      'model_class': cfg.model._target_,
+      'dataset': cfg.dataset.name,
+      'random_seed': cfg.experiment.random_seed,
+    }
+
+    # Add model-specific parameters
+    if model_type == 'scikit':
+      experiment_data.update(self._extract_scikit_params(cfg))
+    elif model_type == 'neural_network':
+      experiment_data.update(self._extract_nn_params(cfg))
+    elif model_type == 'transformer':
+      experiment_data.update(self._extract_transformer_params(cfg))
+
+    # Add metrics
+    experiment_data.update(
+      {
+        'test_accuracy': metrics.get('accuracy', 0.0),
+        'precision_macro': metrics.get('report', {})
+        .get('macro avg', {})
+        .get('precision', 0.0),
+        'recall_macro': metrics.get('report', {})
+        .get('macro avg', {})
+        .get('recall', 0.0),
+        'f1_macro': metrics.get('report', {}).get('macro avg', {}).get('f1-score', 0.0),
+        'model_path': str(model_path) if model_path else '',
+        'training_time_seconds': training_time,
+      }
+    )
+
+    # Save to CSV (for easy comparison)
+    self._save_to_csv(experiment_data)
+
+    # Save detailed results to JSON
+    detailed_data = {
+      **experiment_data,
+      'full_config': OmegaConf.to_container(cfg),
+      'detailed_metrics': metrics,
+    }
+    self._save_detailed_json(detailed_data, timestamp)
+
+    logger.info(
+      f'Experiment logged: {model_type} - {experiment_data["test_accuracy"]:.4f} accuracy'
+    )
+
+  def _extract_scikit_params(self, cfg: DictConfig) -> Dict[str, Any]:
+    """Extract scikit-learn specific parameters."""
+    params = {}
+
+    # Model parameters
+    if hasattr(cfg.model, 'C'):
+      params['C'] = cfg.model.C
+    if hasattr(cfg.model, 'kernel'):
+      params['kernel'] = cfg.model.kernel
+    if hasattr(cfg.model, 'alpha'):
+      params['alpha'] = cfg.model.alpha
+
+    # Feature extractor parameters
+    if hasattr(cfg.feature_extractor, 'params'):
+      params['min_df'] = cfg.feature_extractor.params.get('min_df', 1)
+      params['max_df'] = cfg.feature_extractor.params.get('max_df', 1.0)
+      params['ngram_range'] = str(
+        cfg.feature_extractor.params.get('ngram_range', [1, 1])
+      )
+
+    return params
+
+  def _extract_nn_params(self, cfg: DictConfig) -> Dict[str, Any]:
+    """Extract neural network specific parameters."""
+    return {
+      'hidden_units': cfg.model.get('hidden_units', 128),
+      'learning_rate': cfg.model.get('learning_rate', 1e-3),
+      'batch_size': cfg.model.get('batch_size', 32),
+      'num_epochs': cfg.model.get('num_epochs', 5),
+      'dropout_p': cfg.model.get('dropout_p', 0.5),
+      'weight_decay': cfg.model.get('weight_decay', 1e-5),
+      'embedding_model': cfg.feature_extractor.get(
+        'model_name_or_path', 'all-MiniLM-L6-v2'
+      ),
+    }
+
+  def _extract_transformer_params(self, cfg: DictConfig) -> Dict[str, Any]:
+    """Extract transformer specific parameters."""
+    return {
+      'transformer_model': cfg.model.get('model_name', 'gpt2'),
+      'learning_rate': cfg.model.get('learning_rate', 2e-5),
+      'batch_size': cfg.model.get('batch_size', 16),
+      'num_epochs': cfg.model.get('num_epochs', 3),
+      'max_length': cfg.model.get('max_length', 512),
+      'freeze_transformer': cfg.model.get('freeze_transformer', True),
+      'dropout_p': cfg.model.get('dropout_p', 0.1),
+    }
+
+  def _save_to_csv(self, data: Dict[str, Any]) -> None:
+    """Save experiment data to CSV for easy comparison."""
+    df_new = pd.DataFrame([data])
+
+    csv_path = self.results_dir / self.results_file
+    if csv_path.exists():
+      df_existing = pd.read_csv(csv_path)
+      df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+    else:
+      df_combined = df_new
+
+    df_combined.to_csv(csv_path, index=False)
+
+  def _save_detailed_json(self, data: Dict[str, Any], timestamp: str) -> None:
+    """Save detailed experiment data to JSON."""
+    json_path = self.results_dir / f'experiment_{timestamp}.json'
+    with open(json_path, 'w') as f:
+      json.dump(data, f, indent=2, default=str)
+
+  def get_best_results(
+    self, model_type: Optional[str] = None, metric: str = 'test_accuracy'
+  ) -> pd.DataFrame:
+    """Get best results, optionally filtered by model type."""
+    csv_path = self.results_dir / self.results_file
+    if not csv_path.exists():
+      logger.warning('No experiment results found')
+      return pd.DataFrame()
+
+    df = pd.read_csv(csv_path)
+
+    if model_type:
+      df = df[df['model_type'] == model_type]
+
+    if len(df) == 0:
+      return df
+
+    # Sort by metric and return top results
+    return df.sort_values(metric, ascending=False)
+
+  def compare_models(self, top_n: int = 5) -> pd.DataFrame:
+    """Compare top performing models across all types."""
+    csv_path = self.results_dir / self.results_file
+    if not csv_path.exists():
+      logger.warning('No experiment results found')
+      return pd.DataFrame()
+
+    df = pd.read_csv(csv_path)
+
+    # Get top N results
+    top_results = df.sort_values('test_accuracy', ascending=False).head(top_n)
+
+    # Select key columns for comparison
+    comparison_cols = [
+      'timestamp',
+      'model_type',
+      'model_class',
+      'test_accuracy',
+      'precision_macro',
+      'recall_macro',
+      'f1_macro',
+    ]
+
+    return top_results[comparison_cols]
+
+================
+File: load_dataset.py
+================
+from pathlib import Path
+from typing import Any, Dict, Tuple
+
+import numpy as np
+import pandas as pd
+import structlog
+from omegaconf import DictConfig, OmegaConf
+
+logger = structlog.get_logger(__name__)
+
+
+def validate_dataset_config(cfg: DictConfig) -> None:
+  """Validate dataset configuration parameters."""
+  if not hasattr(cfg.dataset, 'name'):
+    raise ValueError("Dataset configuration must specify 'name'")
+
+  if cfg.dataset.name == 'sms_spam':
+    required_fields = ['path', 'text_column', 'label_column']
+    for field in required_fields:
+      if not hasattr(cfg.dataset, field):
+        raise ValueError(f"SMS spam dataset requires '{field}' in configuration")
+
+
+def load_dummy_dataset() -> Tuple[np.ndarray, np.ndarray]:
+  """Load the dummy spam dataset for testing purposes."""
+  data = {
+    'text': [
+      'Free money offer, claim now!',
+      "WINNER! You've won a $1000 cash prize.",
+      'Meeting scheduled for tomorrow at 10am regarding project updates.',
+      'Hello John, how are you doing today?',
+      'Special discount on all products this weekend only!',
+      'URGENT: Your account requires immediate attention for security reasons.',
+      "Let's discuss the project deliverables next week.",
+      'Please confirm your subscription to our newsletter.',
+      'Buy one get one free, limited time offer.',
+      "Don't forget our appointment next Tuesday at 3pm.",
+    ],
+    'label': [1, 1, 0, 0, 1, 1, 0, 0, 1, 0],  # 1 for spam, 0 for not spam (ham)
+  }
+  df = pd.DataFrame(data)
+  logger.info(f'Loaded dummy dataset with {len(df)} samples')
+  logger.info(f'Class distribution: {df["label"].value_counts().to_dict()}')
+
+  return df['text'].values, df['label'].values
+
+
+def load_sms_spam_dataset(cfg: DictConfig) -> Tuple[np.ndarray, np.ndarray]:
+  """Load the SMS Spam Collection dataset."""
+  dataset_path = Path(cfg.dataset.path)
+
+  if not dataset_path.exists():
+    raise FileNotFoundError(f'Dataset file not found: {dataset_path}')
+
+  # Try different encodings if latin-1 fails
+  encodings = ['latin-1', 'utf-8', 'cp1252', 'iso-8859-1']
+  df = None
+
+  for encoding in encodings:
+    try:
+      logger.info(f'Attempting to load dataset with {encoding} encoding')
+      df = pd.read_csv(dataset_path, encoding=encoding)
+      logger.info(f'Successfully loaded with {encoding} encoding')
+      break
+    except UnicodeDecodeError:
+      logger.warning(f'Failed to load with {encoding} encoding')
+      continue
+    except Exception as e:
+      logger.error(f'Error loading dataset with {encoding}: {str(e)}')
+      continue
+
+  if df is None:
+    raise ValueError(f'Could not load dataset from {dataset_path} with any encoding')
+
+  # Validate required columns exist
+  text_column = cfg.dataset.text_column
+  label_column = cfg.dataset.label_column
+
+  if text_column not in df.columns:
+    raise ValueError(
+      f"Text column '{text_column}' not found in dataset. Available columns: {list(df.columns)}"
+    )
+  if label_column not in df.columns:
+    raise ValueError(
+      f"Label column '{label_column}' not found in dataset. Available columns: {list(df.columns)}"
+    )
+
+  # Handle missing values
+  initial_count = len(df)
+  df = df.dropna(subset=[text_column, label_column])
+  if len(df) < initial_count:
+    logger.warning(f'Dropped {initial_count - len(df)} rows with missing values')
+
+  # Map text labels to numeric values if needed
+  if hasattr(cfg.dataset, 'label_mapping') and cfg.dataset.label_mapping:
+    original_labels = df[label_column].unique()
+    df[label_column] = df[label_column].map(cfg.dataset.label_mapping)
+
+    # Check for unmapped labels
+    if df[label_column].isna().any():
+      unmapped = df[df[label_column].isna()][label_column].unique()
+      logger.warning(f'Found unmapped labels: {unmapped}')
+      df = df.dropna(subset=[label_column])
+
+    logger.info(
+      f'Mapped labels: {dict(zip(original_labels, df[label_column].unique()))}'
+    )
+
+  # Validate label values
+  unique_labels = df[label_column].unique()
+  if not all(isinstance(label, (int, float)) for label in unique_labels):
+    logger.warning(f'Non-numeric labels found: {unique_labels}')
+
+  logger.info(f'Dataset loaded with {len(df)} samples')
+  logger.info(f'Class distribution: {df[label_column].value_counts().to_dict()}')
+
+  # Convert to numpy arrays
+  texts = df[text_column].values
+  labels = df[label_column].values
+
+  # Ensure labels are integers
+  try:
+    labels = labels.astype(int)
+  except ValueError as e:
+    logger.error(f'Could not convert labels to integers: {e}')
+    raise ValueError(f'Labels must be convertible to integers: {unique_labels}')
+
+  return texts, labels
+
+
+def load_dataset(cfg: DictConfig) -> Tuple[np.ndarray, np.ndarray]:
+  """
+  Load dataset based on configuration.
+
+  Args:
+      cfg: Configuration object containing dataset specifications
+
+  Returns:
+      Tuple of (texts, labels) as numpy arrays
+
+  Raises:
+      ValueError: If dataset configuration is invalid
+      FileNotFoundError: If dataset file is not found
+  """
+  try:
+    validate_dataset_config(cfg)
+
+    logger.info(f'Loading dataset: {cfg.dataset.name}')
+
+    if cfg.dataset.name == 'dummy_spam':
+      return load_dummy_dataset()
+    elif cfg.dataset.name == 'sms_spam':
+      return load_sms_spam_dataset(cfg)
+    else:
+      raise ValueError(f'Unknown dataset: {cfg.dataset.name}')
+
+  except Exception as e:
+    logger.error(f'Error loading dataset: {str(e)}')
+    if cfg.dataset.name != 'dummy_spam':
+      logger.warning('Falling back to dummy dataset')
+      return load_dummy_dataset()
+    else:
+      raise
+
+================
+File: pyproject.toml
+================
+[project]
+name = "experiments.hydra"
+version = "0.0.1"
+description = "Experiments with Hydra"
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "fastapi>=0.115.12",
+    "hydra-core>=1.3.2",
+    "omegaconf>=2.3.0",
+    "torch>=2.0.0",
+    "pydantic>=2.11.4",
+    "python-dotenv>=1.1.0",
+    "structlog>=25.3.0",
+    "uvicorn>=0.34.2",
+    "pandas>=2.2.3",
+    "scikit-learn>=1.6.1",
+    "numpy>=2.2.5",
+    "transformers>=4.51.3",
+    "sentence-transformers>=4.1.0",
+    "tqdm>=4.67.1",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+]
+
+[tool.ruff]
+indent-width = 2
+
+[tool.ruff.lint]
+select = ["E", "W", "F"]
+ignore = ["F401"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+pythonpath = ["."]
+markers = ["smoke: quick training smoke tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.3",
+    "ipykernel>=6.29.5",
+    "nest-asyncio>=1.6.0",
+    "black>=23.3.0",
+    "ruff>=0.11.10",
+]
+
+================
+File: README.md
+================
+# Hydra ML Experiments
+
+A comprehensive demonstration project showing how to use Hydra for configuration management in machine learning experiments. This project implements spam classification using three different approaches: scikit-learn models, neural networks, and transformer models.
+
+## Overview
+
+This project demonstrates:
+
+- **Hydra Configuration Management**: Dynamic configuration composition and overrides
+- **Multiple ML Approaches**: Scikit-learn, PyTorch neural networks, and transformer models
+- **Modular Architecture**: Composable configurations for datasets, models, and feature extractors
+- **Reproducible Experiments**: Consistent random seeding and output management
+- **Production-Ready Code**: Error handling, logging, and model persistence
+
+## Features
+
+- 🔧 **Three Training Pipelines**: Scikit-learn, Neural Networks, and Transformers
+- 📊 **Multiple Datasets**: SMS Spam and synthetic dummy data
+- 🎯 **Various Models**: From Naive Bayes to BERT-based transformers
+- 🔄 **Easy Experimentation**: Command-line configuration overrides
+- 📈 **Comprehensive Evaluation**: Accuracy metrics and classification reports
+- 💾 **Model Persistence**: Automatic model saving with metadata
+- 📋 **Experiment Tracking**: Unified tracking and analysis across all model types
+- 📊 **Visual Analysis**: Automated plots and comparison tools
+
+## Installation
+
+### Prerequisites
+
+- Python 3.12+
+- uv package manager (recommended) or pip
+
+### Setup
+
+```shell
+# Clone the repository
+git clone <repository-url>
+cd experiments.hydra
+
+# Create and activate virtual environment with uv
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+uv sync
+
+# Alternative: Install with pip
+# pip install -e .
+```
+
+### Download the SMS spam dataset
+
+```shell
+python download_dataset.py
+```
+
+## Project Structure
+
+```
+experiments.hydra/
+├── train_scikit.py             # Scikit-learn training pipeline
+├── train_nn.py                 # Neural network training pipeline
+├── train_llm.py                # LLM training pipeline
+├── load_dataset.py             # Dataset loading utilities
+├── experiment_tracker.py       # Unified experiment tracking system
+├── analyze_experiments.py      # Experiment analysis and visualization
+├── models/                     # Model implementations
+│   ├── embeddings.py           # Embeddings classifier model implementation
+│   └── gpt2.py                 # GPT-2 classifier model implementation
+├── conf/                       # Hydra configuration directory
+│   ├── config_scikit.yaml      # Scikit-learn main config
+│   ├── config_nn.yaml          # Neural network main config
+│   ├── config_llm.yaml         # LLM main config
+│   ├── model/                  # Model configurations
+│   │   ├── embeddings_classifier.yaml
+│   │   ├── gpt2_classifier.yaml
+│   │   ├── logistic_regression.yaml
+│   │   ├── naive_bayes.yaml
+│   │   └── svm.yaml
+│   ├── feature_extractor/      # Feature extraction configs
+│   │   ├── tfidf_default.yaml
+│   │   └── sentence_transformer.yaml
+│   └── dataset/                # Dataset configurations
+│       ├── sms_spam.yaml
+│       └── dummy_spam.yaml
+├── data/                       # Dataset storage
+├── outputs/                    # Training outputs and logs
+├── experiment_results/         # Experiment tracking results
+│   ├── experiment_results.csv  # Unified results table
+│   └── experiment_*.json       # Detailed experiment records
+└── pyproject.toml              # Project dependencies
+```
+
+## Usage
+
+### 1. Scikit-learn Models (`train_scikit.py`)
+
+Train traditional ML models with TF-IDF features:
+
+```shell
+# Default: Naive Bayes with TF-IDF
+python train_scikit.py
+
+# Try different models
+python train_scikit.py model=logistic_regression
+python train_scikit.py model=svm
+
+# Override hyperparameters
+python train_scikit.py model=logistic_regression model.C=0.1
+python train_scikit.py model=svm model.kernel=rbf model.C=10.0
+
+# Change feature extraction
+python train_scikit.py feature_extractor.params.min_df=2
+python train_scikit.py feature_extractor.params.max_df=0.8
+python train_scikit.py feature_extractor.params.ngram_range=[1,3]
+
+# Add new TF-IDF parameters (will be added to config)
+python train_scikit.py +feature_extractor.params.max_features=5000
+python train_scikit.py +feature_extractor.params.stop_words=english
+
+# Use different dataset
+python train_scikit.py dataset=dummy_spam
+```
+
+### 2. Neural Networks (`train_nn.py`)
+
+Train PyTorch neural networks with sentence embeddings:
+
+```shell
+# Default: MLP with sentence transformers
+python train_nn.py
+
+# Override model architecture (embeddings_classifier is default)
+python train_nn.py model=embeddings_classifier
+
+# Adjust training parameters
+python train_nn.py model.num_epochs=50 model.batch_size=64
+python train_nn.py model.learning_rate=0.001 model.hidden_units=256
+
+# Change sentence transformer model
+python train_nn.py feature_extractor.model_name_or_path=all-distilroberta-v1
+
+# Enable early stopping
+python train_nn.py early_stopping_patience=10
+```
+
+### 3. Transformer LLM Models (`train_llm.py`)
+
+Fine-tune transformer models for text classification:
+
+```shell
+# Default: GPT-2 classifier
+python train_llm.py
+
+# Adjust training parameters
+python train_llm.py num_epochs=1 model.learning_rate=2e-5
+python train_llm.py model.batch_size=16 model.max_length=256
+
+# Freeze/unfreeze transformer layers
+python train_llm.py model.freeze_transformer=true
+python train_llm.py model.freeze_transformer=false
+
+# Early stopping for fine-tuning
+python train_llm.py early_stopping_patience=3
+```
+
+## Configuration System
+
+### Main Configuration Files
+
+Each training script uses a dedicated main configuration:
+
+- **`config_scikit.yaml`**: Scikit-learn models with TF-IDF features
+- **`config_nn.yaml`**: Neural networks with sentence embeddings
+- **`config_llm.yaml`**: Transformer fine-tuning
+
+### Available Models
+
+#### Scikit-learn Models (`train_scikit.py`)
+
+- `naive_bayes`: Multinomial Naive Bayes
+- `logistic_regression`: Logistic Regression with L2 regularization
+- `svm`: Support Vector Machine with linear kernel
+
+#### Neural Network Models (`train_nn.py`)
+
+- `embeddings_classifier`: Feedforward neural network with dropout regularization
+
+#### Transformer Models (`train_llm.py`)
+
+- `gpt2`: Fine-tunable GPT-2 with classification head
+
+### Available Datasets
+
+- `sms_spam`: Real SMS spam dataset
+- `dummy_spam`: Synthetic dataset for testing
+
+### Feature Extractors
+
+- `tfidf_default`: TF-IDF vectorization (for scikit-learn)
+- `sentence_transformer`: Sentence embeddings (for neural networks)
+
+#### TF-IDF Parameters
+
+The `tfidf_default` configuration includes these parameters:
+
+- `min_df`: Minimum document frequency (default: 1)
+- `max_df`: Maximum document frequency (default: 1.0)
+- `ngram_range`: N-gram range (default: [1,1])
+
+You can override existing parameters or add new ones:
+
+```shell
+# Override existing parameters
+python train_scikit.py feature_extractor.params.min_df=2
+python train_scikit.py feature_extractor.params.max_df=0.8
+
+# Add new parameters with + prefix
+python train_scikit.py +feature_extractor.params.max_features=5000
+python train_scikit.py +feature_extractor.params.stop_words=english
+```
+
+Common TF-IDF parameters you can add:
+
+- `max_features`: Maximum number of features
+- `stop_words`: Stop words to remove ('english' or custom list)
+- `lowercase`: Convert to lowercase (default: True)
+- `binary`: Use binary term frequencies (default: False)
+
+## Advanced Usage
+
+### Hyperparameter Sweeps
+
+Run multiple experiments with different configurations:
+
+```shell
+# Sweep over multiple models
+python train_scikit.py -m model=naive_bayes,logistic_regression,svm
+
+# Sweep over hyperparameters
+python train_nn.py -m model.learning_rate=0.001,0.01,0.1 model.hidden_units=128,256,512
+
+# Complex sweeps
+python train_llm.py -m model.learning_rate=1e-5,2e-5,5e-5 model.batch_size=8,16,32
+```
+
+### Custom Configurations
+
+Override any configuration parameter:
+
+```shell
+# Change experiment settings
+python train_nn.py experiment.name=my_experiment experiment.random_seed=42
+
+# Modify dataset parameters
+python train_scikit.py dataset.test_split_ratio=0.3
+
+# Adjust validation split
+python train_nn.py dataset.validation_split_ratio=0.15
+```
+
+### Output Management
+
+All experiments save outputs to timestamped directories:
+
+```
+outputs/
+├── spam_classification_experiment/    # Scikit-learn outputs
+├── nn_spam_classification/           # Neural network outputs
+└── transformer_spam_classification/  # Transformer outputs
+    └── 2024-01-15_14-30-45/         # Timestamped run
+        ├── .hydra/                   # Hydra configs
+        ├── train.log                 # Training logs
+        └── models/                   # Saved models
+```
+
+## Experiment Tracking
+
+The project includes a unified experiment tracking system that automatically logs all training runs across different model types, making it easy to compare performance and analyze results.
+
+### Automatic Tracking
+
+Every training run is automatically tracked with:
+
+- **Model performance**: Accuracy, precision, recall, F1-score
+- **Hyperparameters**: Model-specific parameters and configurations
+- **Training metadata**: Timestamps, training time, model paths
+- **Full configuration**: Complete Hydra config for reproducibility
+
+Results are saved to:
+
+- `experiment_results/experiment_results.csv` - Unified results table
+- `experiment_results/experiment_*.json` - Detailed run information
+
+### Analyzing Results
+
+#### View Overall Summary
+
+```shell
+# Show summary of all experiments
+python analyze_experiments.py
+
+# Example output:
+# ================================================================================
+# EXPERIMENT RESULTS SUMMARY
+# ================================================================================
+# Total experiments: 15
+# Model types: scikit, neural_network, transformer
+# Date range: 2024-01-15_10-30-45 to 2024-01-15_16-45-12
+```
+
+#### Compare Model Types
+
+```shell
+# Generate comparison plots
+python analyze_experiments.py --compare
+
+# Save plots to file instead of displaying
+python analyze_experiments.py --compare --save-plots model_comparison.png
+```
+
+The comparison plots include:
+
+- Accuracy distribution by model type
+- Performance over time
+- F1-score distributions
+- Top 10 performing models
+
+#### Focus on Specific Model Types
+
+```shell
+# Analyze only scikit-learn models
+python analyze_experiments.py --model-type scikit
+
+# Analyze neural networks
+python analyze_experiments.py --model-type neural_network
+
+# Analyze transformers
+python analyze_experiments.py --model-type transformer
+```
+
+### Tracked Parameters
+
+#### Scikit-learn Models
+
+- Model type and hyperparameters (C, kernel, alpha)
+- TF-IDF parameters (min_df, max_df, ngram_range)
+- Feature extraction settings
+
+#### Neural Networks
+
+- Architecture (hidden_units, dropout_p)
+- Training (learning_rate, batch_size, num_epochs)
+- Embedding model (sentence transformer)
+- Regularization (weight_decay)
+
+#### Transformers
+
+- Model name and size
+- Fine-tuning parameters (learning_rate, freeze_transformer)
+- Tokenization (max_length)
+- Training settings (batch_size, num_epochs)
+
+### Experiment Workflow Examples
+
+#### Run and Compare Multiple Models
+
+```shell
+# Run experiments with different models
+python train_scikit.py model=naive_bayes
+python train_scikit.py model=logistic_regression
+python train_nn.py model.hidden_units=256
+python train_llm.py model.freeze_transformer=false
+
+# Analyze results
+python analyze_experiments.py --compare
+```
+
+#### Hyperparameter Sweeps with Tracking
+
+```shell
+# Run parameter sweeps - all automatically tracked
+python train_scikit.py -m model=naive_bayes,logistic_regression,svm
+python train_nn.py -m model.learning_rate=0.001,0.01,0.1 model.hidden_units=64,128,256
+
+# View best results for each model type
+python analyze_experiments.py --model-type scikit
+python analyze_experiments.py --model-type neural_network
+```
+
+#### Find Best Performing Models
+
+```shell
+# View top performers across all model types
+python analyze_experiments.py
+
+# The summary shows:
+# TOP 5 PERFORMING MODELS
+# --------------------------------------------------
+# timestamp           model_type      model_class                    test_accuracy  f1_macro
+# 2024-01-15_14-30-45 transformer     GPT2Classifier                 0.9650        0.9645
+# 2024-01-15_13-15-22 neural_network  EmbeddingsClassifier           0.9580        0.9575
+# 2024-01-15_12-45-10 scikit          LogisticRegression             0.9520        0.9515
+```
+
+### Results Directory Structure
+
+```
+experiment_results/
+├── experiment_results.csv          # Unified results table
+├── experiment_2024-01-15_10-30-45.json  # Detailed run #1
+├── experiment_2024-01-15_11-15-30.json  # Detailed run #2
+└── experiment_2024-01-15_12-45-10.json  # Detailed run #3
+```
+
+### CSV Results Format
+
+The `experiment_results.csv` contains columns for easy analysis:
+
+| Column                    | Description                            |
+| ------------------------- | -------------------------------------- |
+| `timestamp`               | When the experiment was run            |
+| `model_type`              | scikit, neural_network, or transformer |
+| `model_class`             | Specific model implementation          |
+| `test_accuracy`           | Final test accuracy                    |
+| `precision_macro`         | Macro-averaged precision               |
+| `recall_macro`            | Macro-averaged recall                  |
+| `f1_macro`                | Macro-averaged F1-score                |
+| `training_time_seconds`   | Total training time                    |
+| Model-specific parameters | Varies by model type                   |
+
+### Integration with Hydra Sweeps
+
+The tracking system works seamlessly with Hydra's multirun feature:
+
+```shell
+# Run sweep - each configuration automatically tracked
+python train_nn.py -m model.learning_rate=0.001,0.01 model.hidden_units=64,128 model.dropout_p=0.3,0.5
+
+# Analyze sweep results
+python analyze_experiments.py --model-type neural_network
+```
+
+This creates individual experiment records for each combination in the sweep, making it easy to identify the best hyperparameter combinations.
+
+## Model Performance
+
+[ TBD ]
+
+## Adding New Components
+
+### Adding a New Model
+
+1. **For Scikit-learn**: Create `conf/model/new_model.yaml`:
+
+```yaml
+# @package model
+_target_: sklearn.ensemble.RandomForestClassifier
+n_estimators: 100
+random_state: ${experiment.random_seed}
+```
+
+2. **For Neural Networks**: Add model class to `models/` directory and create config:
+
+```yaml
+# @package model
+_target_: models.embeddings.CustomClassifier
+embedding_dim: ${feature_extractor.embedding_dim}
+hidden_units: 512
+num_of_classes: 2
+```
+
+3. **For Transformers**: Create transformer config:
+
+```yaml
+# @package model
+_target_: models.TransformerClassifier
+model_name: "bert-base-uncased"
+num_classes: 2
+freeze_transformer: true
+```
+
+### Adding a New Dataset
+
+Create `conf/dataset/new_dataset.yaml`:
+
+```yaml
+# @package dataset
+_target_: load_dataset.load_custom_dataset
+data_path: "data/custom_data.csv"
+text_column: "message"
+label_column: "category"
+test_split_ratio: 0.2
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **CUDA Out of Memory**:
+
+   ```shell
+   # Reduce batch size
+   python train_llm.py model.batch_size=8
+   python train_nn.py model.batch_size=32
+   ```
+
+2. **Slow Training**:
+
+   ```shell
+   # Use smaller models or reduce epochs
+   python train_llm.py model.model_name=gpt2
+   python train_nn.py model.num_epochs=10
+   ```
+
+3. **Import Errors**:
+
+   ```shell
+   # Ensure all dependencies are installed
+   uv sync
+   # Or reinstall specific packages
+   uv add torch transformers sentence-transformers
+   ```
+
+4. **Configuration Errors**:
+
+   If you encounter configuration-related issues, Hydra provides built-in debugging tools:
+
+   ```shell
+   # Check the final composed configuration before running
+   python train_nn.py --cfg job
+
+   # View configuration structure and validate overrides
+   python train_scikit.py --cfg job model=svm
+
+   # Check specific configuration groups
+   python train_llm.py --cfg job model=gpt2
+
+   # Validate configuration without running the experiment
+   python train_nn.py --cfg job --help
+   ```
+
+   This helps identify:
+
+   - Missing required parameters
+   - Invalid configuration combinations
+   - Typos in parameter names
+   - Incorrect override syntax
+
+5. **Hydra Override Errors**:
+
+   If you get "Key 'X' is not in struct" errors:
+
+   ```shell
+   # Wrong: Trying to override non-existent parameter
+   python train_scikit.py feature_extractor.params.max_features=5000
+
+   # Correct: Add new parameter with + prefix
+   python train_scikit.py +feature_extractor.params.max_features=5000
+
+   # Or override existing parameters
+   python train_scikit.py feature_extractor.params.min_df=2
+   ```
+
+   **Rule**: Use `+` prefix when adding new parameters that don't exist in the config.
+
+### Performance Tips
+
+- **GPU Usage**: Models automatically detect and use GPU when available
+- **Memory Management**: Adjust batch sizes based on available memory
+- **Early Stopping**: Use validation sets to prevent overfitting
+- **Reproducibility**: Set consistent random seeds across experiments
+- **Experiment Tracking**: All runs are automatically tracked for easy performance comparison
+
+## Development
+
+### Running Tests
+
+```shell
+# Install dev dependencies
+uv sync --group dev
+
+# Run tests
+pytest tests/
+
+# Run specific test categories
+pytest tests/ -m smoke
+```
+
+### Code Quality
+
+```shell
+# Format code
+ruff format .
+
+# Lint code
+ruff check .
+```
+
+## Dependencies
+
+Key dependencies managed via `pyproject.toml`:
+
+- **Core**: `hydra-core`, `omegaconf`, `structlog`
+- **ML**: `torch`, `transformers`, `sentence-transformers`, `scikit-learn`
+- **Data**: `pandas`, `numpy`
+- **Visualization**: `matplotlib`, `seaborn`
+- **Utilities**: `tqdm`, `pydantic`
+
+## License
+
+MIT License
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes with tests
+4. Submit a pull request
+
+For questions or issues, please open a GitHub issue.
+
+================
+File: train_llm.py
+================
+import os
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import hydra
+import numpy as np
+import pandas as pd
+import structlog
+import torch
+from omegaconf import DictConfig, OmegaConf
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset
+
+from experiment_tracker import ExperimentTracker
+from load_dataset import load_dataset
+
+logger = structlog.get_logger(__name__)
+
+
+def log_device_info(device: torch.device) -> None:
+  """Log information about the device being used."""
+  if device.type == 'cuda':
+    logger.info(f'Using GPU: {torch.cuda.get_device_name(0)}')
+  elif device.type == 'mps':
+    logger.info('Using MPS')
+  else:
+    logger.info('Using CPU')
+
+
+class EarlyStopping:
+  """Early stopping utility to prevent overfitting."""
+
+  def __init__(self, patience: int = 7, min_delta: float = 0.0):
+    self.patience = patience
+    self.min_delta = min_delta
+    self.counter = 0
+    self.best_score = None
+    self.early_stop = False
+
+  def __call__(self, val_score: float) -> bool:
+    """Check if training should stop early."""
+    if self.best_score is None:
+      self.best_score = val_score
+    elif val_score < self.best_score + self.min_delta:
+      self.counter += 1
+      if self.counter >= self.patience:
+        self.early_stop = True
+    else:
+      self.best_score = val_score
+      self.counter = 0
+    return self.early_stop
+
+
+class TextClassificationDataset(Dataset):
+  """Dataset for text classification with transformer tokenization."""
+
+  def __init__(
+    self, texts: List[str], labels: List[int], tokenizer, max_length: int = 512
+  ):
+    self.texts = texts
+    self.labels = labels
+    self.tokenizer = tokenizer
+    self.max_length = max_length
+
+  def __len__(self):
+    return len(self.texts)
+
+  def __getitem__(self, idx):
+    text = str(self.texts[idx])
+    label = self.labels[idx]
+
+    # Tokenize text
+    encoding = self.tokenizer(
+      text,
+      truncation=True,
+      padding='max_length',
+      max_length=self.max_length,
+      return_tensors='pt',
+    )
+
+    return {
+      'input_ids': encoding['input_ids'].flatten(),
+      'attention_mask': encoding['attention_mask'].flatten(),
+      'labels': torch.tensor(label, dtype=torch.long),
+    }
+
+
+def create_data_loaders(
+  train_texts: List[str],
+  train_labels: List[int],
+  val_texts: List[str],
+  val_labels: List[int],
+  test_texts: List[str],
+  test_labels: List[int],
+  tokenizer,
+  cfg: DictConfig,
+) -> tuple[DataLoader, Optional[DataLoader], DataLoader]:
+  """Create data loaders for pre-split train, validation, and test sets."""
+
+  logger.info(
+    f'Train size: {len(train_texts)}, Val size: {len(val_texts)}, Test size: {len(test_texts)}'
+  )
+
+  # Create datasets
+  max_length = cfg.model.max_length
+  batch_size = cfg.model.batch_size
+
+  train_dataset = TextClassificationDataset(
+    train_texts, train_labels, tokenizer, max_length
+  )
+  test_dataset = TextClassificationDataset(
+    test_texts, test_labels, tokenizer, max_length
+  )
+
+  val_dataset = None
+  if len(val_texts) > 0:
+    val_dataset = TextClassificationDataset(
+      val_texts, val_labels, tokenizer, max_length
+    )
+
+  # Create data loaders
+  train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+  test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+  val_loader = (
+    DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    if val_dataset
+    else None
+  )
+
+  return train_loader, val_loader, test_loader
+
+
+def split_data_for_loaders(
+  X_texts: np.ndarray, y_labels: np.ndarray, cfg: DictConfig
+) -> tuple[List[str], List[int], List[str], List[int], List[str], List[int]]:
+  """Split data into train/val/test sets according to config ratios."""
+
+  # Create train/val/test splits
+  X_temp, X_test, y_temp, y_test = train_test_split(
+    X_texts,
+    y_labels,
+    test_size=cfg.dataset.test_split_ratio,
+    random_state=cfg.experiment.random_seed,
+    stratify=y_labels,
+  )
+
+  # Create validation split if specified
+  val_size = cfg.dataset.get('validation_split_ratio', 0.2)
+  if val_size > 0:
+    X_train, X_val, y_train, y_val = train_test_split(
+      X_temp,
+      y_temp,
+      test_size=val_size,
+      random_state=cfg.experiment.random_seed,
+      stratify=y_temp,
+    )
+  else:
+    X_train, X_val, y_train, y_val = X_temp, np.array([]), y_temp, np.array([])
+
+  # Convert to lists for consistency
+  train_texts = X_train.tolist()
+  train_labels = y_train.tolist()
+  val_texts = X_val.tolist() if len(X_val) > 0 else []
+  val_labels = y_val.tolist() if len(y_val) > 0 else []
+  test_texts = X_test.tolist()
+  test_labels = y_test.tolist()
+
+  return train_texts, train_labels, val_texts, val_labels, test_texts, test_labels
+
+
+def train_epoch(
+  model: torch.nn.Module,
+  dataloader: DataLoader,
+  optimizer: torch.optim.Optimizer,
+) -> float:
+  """Train the model for one epoch."""
+  model.train()
+  total_loss = 0
+  num_batches = 0
+
+  for batch in dataloader:
+    try:
+      # Model handles device placement automatically
+      input_ids = batch['input_ids']
+      attention_mask = batch['attention_mask']
+      labels = batch['labels']
+
+      optimizer.zero_grad()
+      loss = model.training_step((input_ids, attention_mask, labels))
+      loss.backward()
+
+      # Gradient clipping for transformer fine-tuning
+      torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+      optimizer.step()
+
+      total_loss += loss.item()
+      num_batches += 1
+    except Exception as e:
+      logger.error(f'Error in training batch: {str(e)}')
+      continue
+
+  return total_loss / max(num_batches, 1)
+
+
+def evaluate(model: torch.nn.Module, dataloader: DataLoader) -> Dict[str, Any]:
+  """Evaluate the model on the given dataloader."""
+  model.eval()
+  all_preds = []
+  all_targets = []
+
+  with torch.no_grad():
+    for batch in dataloader:
+      try:
+        # Model handles device placement automatically
+        input_ids = batch['input_ids']
+        attention_mask = batch['attention_mask']
+        labels = batch['labels']
+
+        logits = model(input_ids, attention_mask)
+        preds = torch.argmax(logits, dim=1)
+
+        all_preds.extend(preds.cpu().numpy())
+        all_targets.extend(labels.cpu().numpy())
+      except Exception as e:
+        logger.error(f'Error in evaluation batch: {str(e)}')
+        continue
+
+  if not all_preds:
+    logger.error('No valid predictions made during evaluation')
+    return {'accuracy': 0.0, 'report': {}}
+
+  accuracy = accuracy_score(all_targets, all_preds)
+  try:
+    report = classification_report(
+      all_targets, all_preds, output_dict=True, zero_division=0
+    )
+  except Exception as e:
+    logger.error(f'Error generating classification report: {str(e)}')
+    report = {}
+
+  return {'accuracy': accuracy, 'report': report}
+
+
+def save_model(
+  model: torch.nn.Module, cfg: DictConfig, metrics: Dict[str, Any]
+) -> Optional[Path]:
+  """Save the trained model with metadata."""
+  try:
+    # Create outputs directory if it doesn't exist
+    output_dir = Path('outputs') / 'models'
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create filename with timestamp and accuracy
+    timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+    accuracy = metrics.get('accuracy', 0.0)
+    model_name = cfg.model._target_.split('.')[-1]
+    filename = f'{model_name}_{timestamp}_acc{accuracy:.4f}.pt'
+
+    model_path = output_dir / filename
+
+    # Save model state dict and metadata
+    torch.save(
+      {
+        'model_state_dict': model.state_dict(),
+        'model_config': OmegaConf.to_container(cfg.model),
+        'metrics': metrics,
+        'timestamp': timestamp,
+      },
+      model_path,
+    )
+
+    logger.info(f'Model saved to {model_path}')
+    return model_path
+  except Exception as e:
+    logger.error(f'Failed to save model: {str(e)}')
+    return None
+
+
+@hydra.main(config_path='conf', config_name='config_llm', version_base=None)
+def train_transformer_pipeline(cfg: DictConfig) -> None:
+  """Main training pipeline for transformer models."""
+  try:
+    # Initialize experiment tracker
+    tracker = ExperimentTracker()
+    start_time = time.time()
+
+    # Print configuration
+    logger.info('--- HYDRA CONFIGURATION ---')
+    logger.info(OmegaConf.to_yaml(cfg))
+    logger.info('-------------------------')
+
+    # Set random seed for reproducibility
+    torch.manual_seed(cfg.experiment.random_seed)
+    np.random.seed(cfg.experiment.random_seed)
+
+    # Load data
+    X_text, y_labels = load_dataset(cfg)
+
+    # Initialize model (this will also initialize the tokenizer)
+    logger.info('--- Initializing Transformer Model ---')
+    model = hydra.utils.instantiate(cfg.model)
+
+    # Log device information (model handles device placement automatically)
+    log_device_info(model.device)
+
+    # Log model information
+    model_info = model.get_model_info()
+    logger.info(f'Model: {model_info["model_name"]}')
+    logger.info(f'Total parameters: {model_info["total_parameters"]:,}')
+    logger.info(f'Trainable parameters: {model_info["trainable_parameters"]:,}')
+    logger.info(f'Frozen transformer: {model_info["frozen_transformer"]}')
+
+    # Split data according to config ratios
+    train_texts, train_labels, val_texts, val_labels, test_texts, test_labels = (
+      split_data_for_loaders(X_text, y_labels, cfg)
+    )
+
+    # Create data loaders (using model's tokenizer)
+    train_loader, val_loader, test_loader = create_data_loaders(
+      train_texts,
+      train_labels,
+      val_texts,
+      val_labels,
+      test_texts,
+      test_labels,
+      model.tokenizer,
+      cfg,
+    )
+
+    # Create optimizer
+    optimizer = model.configure_optimizer()
+
+    # Initialize early stopping if validation set exists
+    early_stopping = None
+    if val_loader is not None:
+      patience = cfg.get(
+        'early_stopping_patience', 5
+      )  # Shorter patience for transformers
+      early_stopping = EarlyStopping(patience=patience)
+
+    # Training loop
+    logger.info('--- Training Transformer Model ---')
+    num_epochs = cfg.model.num_epochs
+    best_val_acc = 0.0
+
+    for epoch in range(num_epochs):
+      # Train
+      train_loss = train_epoch(model, train_loader, optimizer)
+
+      # Evaluate
+      train_metrics = evaluate(model, train_loader)
+      test_metrics = evaluate(model, test_loader)
+
+      log_msg = (
+        f'Epoch {epoch + 1}/{num_epochs} - '
+        f'Train Loss: {train_loss:.4f}, '
+        f'Train Acc: {train_metrics["accuracy"]:.4f}, '
+        f'Test Acc: {test_metrics["accuracy"]:.4f}'
+      )
+
+      # Validation metrics if available
+      if val_loader is not None:
+        val_metrics = evaluate(model, val_loader)
+        log_msg += f', Val Acc: {val_metrics["accuracy"]:.4f}'
+
+        # Check early stopping
+        if early_stopping(val_metrics['accuracy']):
+          logger.info(f'Early stopping triggered at epoch {epoch + 1}')
+          break
+
+        if val_metrics['accuracy'] > best_val_acc:
+          best_val_acc = val_metrics['accuracy']
+
+      logger.info(log_msg)
+
+    # Final evaluation
+    final_metrics = evaluate(model, test_loader)
+    logger.info('--- Final Evaluation Results ---')
+    logger.info(f'Test Accuracy: {final_metrics["accuracy"]:.4f}')
+
+    # Print detailed classification report
+    logger.info('Classification Report:')
+    report = final_metrics.get('report', {})
+    for class_name, metrics in report.items():
+      if isinstance(metrics, dict) and 'precision' in metrics:
+        log_msg = (
+          f'Class {class_name}: '
+          f'precision={metrics["precision"]:.4f}, '
+          f'recall={metrics["recall"]:.4f}, '
+          f'f1-score={metrics["f1-score"]:.4f}'
+        )
+        logger.info(log_msg)
+
+    # Save model
+    model_path = save_model(model, cfg, final_metrics)
+
+    # Log experiment results
+    training_time = time.time() - start_time
+    tracker.log_experiment(
+      cfg=cfg,
+      metrics=final_metrics,
+      model_type='transformer',
+      model_path=model_path,
+      training_time=training_time,
+    )
+
+    if model_path:
+      logger.info(f'Training completed successfully. Model saved to {model_path}')
+    logger.info('Experiment tracked in experiment_results/')
+
+  except Exception as e:
+    logger.error(f'Training failed with error: {str(e)}')
+    raise
+
+
+if __name__ == '__main__':
+  train_transformer_pipeline()
+
+================
+File: train_nn.py
+================
+import os
+import time
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
+import hydra
+import numpy as np
+import pandas as pd
+import structlog
+import torch
+from omegaconf import DictConfig, OmegaConf
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, TensorDataset
+
+from experiment_tracker import ExperimentTracker
+from load_dataset import load_dataset
+
+logger = structlog.get_logger(__name__)
+
+
+def log_device_info(device: torch.device) -> None:
+  """Log information about the device being used."""
+  if device.type == 'cuda':
+    logger.info(f'Using GPU: {torch.cuda.get_device_name(0)}')
+  elif device.type == 'mps':
+    logger.info('Using MPS')
+  else:
+    logger.info('Using CPU')
+
+
+class EarlyStopping:
+  """Early stopping utility to prevent overfitting."""
+
+  def __init__(self, patience: int = 7, min_delta: float = 0.0):
+    self.patience = patience
+    self.min_delta = min_delta
+    self.counter = 0
+    self.best_score = None
+    self.early_stop = False
+
+  def __call__(self, val_score: float) -> bool:
+    """Check if training should stop early."""
+    if self.best_score is None:
+      self.best_score = val_score
+    elif val_score < self.best_score + self.min_delta:
+      self.counter += 1
+      if self.counter >= self.patience:
+        self.early_stop = True
+    else:
+      self.best_score = val_score
+      self.counter = 0
+    return self.early_stop
+
+
+def train_epoch(
+  model: torch.nn.Module,
+  dataloader: DataLoader,
+  optimizer: torch.optim.Optimizer,
+) -> float:
+  """Train the model for one epoch."""
+  model.train()
+  total_loss = 0
+  num_batches = 0
+
+  for batch_idx, (data, target) in enumerate(dataloader):
+    try:
+      # Model handles device placement automatically
+      optimizer.zero_grad()
+      loss = model.training_step((data, target))
+      loss.backward()
+      optimizer.step()
+
+      total_loss += loss.item()
+      num_batches += 1
+    except Exception as e:
+      logger.error(f'Error in training batch {batch_idx}: {str(e)}')
+      continue
+
+  return total_loss / max(num_batches, 1)
+
+
+def evaluate(model: torch.nn.Module, dataloader: DataLoader) -> Dict[str, Any]:
+  """Evaluate the model on the given dataloader."""
+  model.eval()
+  all_preds = []
+  all_targets = []
+
+  with torch.no_grad():
+    for data, target in dataloader:
+      try:
+        # Model handles device placement automatically
+        output = model(data)
+        preds = torch.argmax(output, dim=1)
+
+        all_preds.extend(preds.cpu().numpy())
+        all_targets.extend(target.cpu().numpy())
+      except Exception as e:
+        logger.error(f'Error in evaluation batch: {str(e)}')
+        continue
+
+  if not all_preds:
+    logger.error('No valid predictions made during evaluation')
+    return {'accuracy': 0.0, 'report': {}}
+
+  accuracy = accuracy_score(all_targets, all_preds)
+  try:
+    report = classification_report(
+      all_targets, all_preds, output_dict=True, zero_division=0
+    )
+  except Exception as e:
+    logger.error(f'Error generating classification report: {str(e)}')
+    report = {}
+
+  return {'accuracy': accuracy, 'report': report}
+
+
+def save_model(
+  model: torch.nn.Module, cfg: DictConfig, metrics: Dict[str, Any]
+) -> Optional[Path]:
+  """Save the trained model with metadata."""
+  try:
+    # Create outputs directory if it doesn't exist
+    output_dir = Path('outputs') / 'models'
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create filename with timestamp and accuracy
+    timestamp = pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')
+    accuracy = metrics.get('accuracy', 0.0)
+    model_name = cfg.model._target_.split('.')[-1]
+    filename = f'{model_name}_{timestamp}_acc{accuracy:.4f}.pt'
+
+    model_path = output_dir / filename
+
+    # Save model state dict and metadata
+    torch.save(
+      {
+        'model_state_dict': model.state_dict(),
+        'model_config': OmegaConf.to_container(cfg.model),
+        'metrics': metrics,
+        'timestamp': timestamp,
+      },
+      model_path,
+    )
+
+    logger.info(f'Model saved to {model_path}')
+    return model_path
+  except Exception as e:
+    logger.error(f'Failed to save model: {str(e)}')
+    return None
+
+
+def create_data_splits(
+  X_text: np.ndarray, y_labels: np.ndarray, cfg: DictConfig
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+  """Create train/validation/test splits."""
+  # First split: separate test set
+  X_temp, X_test, y_temp, y_test = train_test_split(
+    X_text,
+    y_labels,
+    test_size=cfg.dataset.test_split_ratio,
+    random_state=cfg.experiment.random_seed,
+    stratify=y_labels,
+  )
+
+  # Second split: separate train and validation from remaining data
+  val_size = cfg.dataset.get('validation_split_ratio', 0.2)
+  if val_size > 0:
+    X_train, X_val, y_train, y_val = train_test_split(
+      X_temp,
+      y_temp,
+      test_size=val_size,
+      random_state=cfg.experiment.random_seed,
+      stratify=y_temp,
+    )
+  else:
+    X_train, X_val, y_train, y_val = X_temp, np.array([]), y_temp, np.array([])
+
+  logger.info(
+    f'Train size: {len(X_train)}, Val size: {len(X_val)}, Test size: {len(X_test)}'
+  )
+  return X_train, X_val, X_test, y_train, y_val, y_test
+
+
+@hydra.main(config_path='conf', config_name='config_nn', version_base=None)
+def train_nn_pipeline(cfg: DictConfig) -> None:
+  """Main training pipeline."""
+  try:
+    # Initialize experiment tracker
+    tracker = ExperimentTracker()
+    start_time = time.time()
+
+    # Print configuration
+    logger.info('--- HYDRA CONFIGURATION ---')
+    logger.info(OmegaConf.to_yaml(cfg))
+    logger.info('-------------------------')
+
+    # Set random seed for reproducibility
+    torch.manual_seed(cfg.experiment.random_seed)
+    np.random.seed(cfg.experiment.random_seed)
+
+    # Load data
+    X_text, y_labels = load_dataset(cfg)
+
+    # Create feature extractor
+    logger.info('--- Initializing Feature Extractor ---')
+    feature_extractor = hydra.utils.instantiate(
+      {k: v for k, v in cfg.feature_extractor.items() if k != 'encode_params'}
+    )
+
+    # Get device info from feature extractor for logging
+    device = next(feature_extractor.parameters()).device
+    feature_extractor = feature_extractor.to(device)
+    log_device_info(device)
+    logger.info(f'Feature extractor moved to {device}')
+
+    # Create train/val/test splits
+    X_train, X_val, X_test, y_train, y_val, y_test = create_data_splits(
+      X_text, y_labels, cfg
+    )
+
+    # Generate embeddings
+    logger.info('Generating embeddings...')
+    encode_kwargs = {
+      'batch_size': cfg.feature_extractor.encode_params.batch_size,
+      'convert_to_tensor': True,
+      'device': device,
+      'show_progress_bar': True,
+    }
+
+    X_train_embeddings = feature_extractor.encode(
+      X_train.tolist() if isinstance(X_train, pd.Series) else X_train,
+      **encode_kwargs,
+    )
+
+    X_test_embeddings = feature_extractor.encode(
+      X_test.tolist() if isinstance(X_test, pd.Series) else X_test,
+      **encode_kwargs,
+    )
+
+    X_val_embeddings = None
+    if len(X_val) > 0:
+      X_val_embeddings = feature_extractor.encode(
+        X_val.tolist() if isinstance(X_val, pd.Series) else X_val,
+        **encode_kwargs,
+      )
+
+    # Convert to tensors and create datasets
+    y_train_tensor = torch.tensor(y_train, dtype=torch.long)
+    y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+    train_dataset = TensorDataset(X_train_embeddings, y_train_tensor)
+    test_dataset = TensorDataset(X_test_embeddings, y_test_tensor)
+
+    val_dataset = None
+    val_loader = None
+    if X_val_embeddings is not None:
+      y_val_tensor = torch.tensor(y_val, dtype=torch.long)
+      val_dataset = TensorDataset(X_val_embeddings, y_val_tensor)
+      val_loader = DataLoader(
+        val_dataset, batch_size=cfg.model.batch_size, shuffle=False
+      )
+
+    # Create dataloaders
+    train_loader = DataLoader(
+      train_dataset, batch_size=cfg.model.batch_size, shuffle=True
+    )
+    test_loader = DataLoader(
+      test_dataset, batch_size=cfg.model.batch_size, shuffle=False
+    )
+
+    # Initialize model
+    logger.info('--- Initializing Model ---')
+    cfg.model.embedding_dim = feature_extractor.get_sentence_embedding_dimension()
+    logger.info(f'Setting model embedding_dim to {cfg.model.embedding_dim}')
+
+    model = hydra.utils.instantiate(cfg.model)
+    logger.info(f'Using model: {cfg.model._target_}')
+
+    # Log device information (model handles device placement automatically)
+    log_device_info(model.device)
+
+    # Create optimizer
+    optimizer = model.configure_optimizer()
+
+    # Initialize early stopping if validation set exists
+    early_stopping = None
+    if val_loader is not None:
+      patience = cfg.get('early_stopping_patience', 10)
+      early_stopping = EarlyStopping(patience=patience)
+
+    # Training loop
+    logger.info('--- Training Model ---')
+    num_epochs = cfg.model.num_epochs
+    best_val_acc = 0.0
+
+    for epoch in range(num_epochs):
+      # Train
+      train_loss = train_epoch(model, train_loader, optimizer)
+
+      # Evaluate
+      train_metrics = evaluate(model, train_loader)
+      test_metrics = evaluate(model, test_loader)
+
+      log_msg = (
+        f'Epoch {epoch + 1}/{num_epochs} - '
+        f'Train Loss: {train_loss:.4f}, '
+        f'Train Acc: {train_metrics["accuracy"]:.4f}, '
+        f'Test Acc: {test_metrics["accuracy"]:.4f}'
+      )
+
+      # Validation metrics if available
+      if val_loader is not None:
+        val_metrics = evaluate(model, val_loader)
+        log_msg += f', Val Acc: {val_metrics["accuracy"]:.4f}'
+
+        # Check early stopping
+        if early_stopping(val_metrics['accuracy']):
+          logger.info(f'Early stopping triggered at epoch {epoch + 1}')
+          break
+
+        if val_metrics['accuracy'] > best_val_acc:
+          best_val_acc = val_metrics['accuracy']
+
+      logger.info(log_msg)
+
+    # Final evaluation
+    final_metrics = evaluate(model, test_loader)
+    logger.info('--- Final Evaluation Results ---')
+    logger.info(f'Test Accuracy: {final_metrics["accuracy"]:.4f}')
+
+    # Print detailed classification report
+    logger.info('Classification Report:')
+    report = final_metrics.get('report', {})
+    for class_name, metrics in report.items():
+      if isinstance(metrics, dict) and 'precision' in metrics:
+        log_msg = (
+          f'Class {class_name}: '
+          f'precision={metrics["precision"]:.4f}, '
+          f'recall={metrics["recall"]:.4f}, '
+          f'f1-score={metrics["f1-score"]:.4f}'
+        )
+        logger.info(log_msg)
+
+    # Save model
+    model_path = save_model(model, cfg, final_metrics)
+
+    # Log experiment results
+    training_time = time.time() - start_time
+    tracker.log_experiment(
+      cfg=cfg,
+      metrics=final_metrics,
+      model_type='neural_network',
+      model_path=model_path,
+      training_time=training_time,
+    )
+
+    if model_path:
+      logger.info(f'Training completed successfully. Model saved to {model_path}')
+    logger.info('Experiment tracked in experiment_results/')
+
+  except Exception as e:
+    logger.error(f'Training failed with error: {str(e)}')
+    raise
+
+
+if __name__ == '__main__':
+  train_nn_pipeline()
+
+================
+File: train_scikit.py
+================
+import time
+
+import hydra
+import pandas as pd
+import structlog
+from hydra.core.hydra_config import HydraConfig
+from omegaconf import DictConfig, OmegaConf
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.model_selection import train_test_split
+
+from experiment_tracker import ExperimentTracker
+from load_dataset import load_dataset
+
+logger = structlog.get_logger(__name__)
+
+
+@hydra.main(config_path='conf', config_name='config_scikit', version_base=None)
+def train_model_pipeline(cfg: DictConfig) -> None:
+  # Initialize experiment tracker
+  tracker = ExperimentTracker()
+  start_time = time.time()
+
+  # Print the entire configuration object as soon as the function starts
+  logger.info('--- ENTIRE HYDRA CONFIGURATION ---')
+  logger.info(OmegaConf.to_yaml(cfg))
+  logger.info('----------------------------------')
+
+  # --- 1. Load Data (Simplified) ---
+  X_text, y_labels = load_dataset(cfg)
+
+  X_train_text, X_test_text, y_train, y_test = train_test_split(
+    X_text,
+    y_labels,
+    test_size=cfg.dataset.test_split_ratio,
+    random_state=cfg.experiment.random_seed,
+    stratify=y_labels,  # Good practice for classification
+  )
+  logger.info('--- Data Split ---')
+  logger.info(f'Train size: {len(X_train_text)}, Test size: {len(X_test_text)}')
+
+  # --- 2. Feature Extraction ---
+  # We can access feature_extractor parameters directly from cfg
+  # If feature_extractor had a _target_, we could instantiate it too.
+  logger.info('--- Initializing Feature Extractor (TF-IDF) ---')
+  logger.info(f'TF-IDF Params: {OmegaConf.to_container(cfg.feature_extractor.params)}')
+
+  # Hydra will instantiate the feature_extractor, but we need
+  # to convert the ngram_range to a tuple
+  vectorizer_params = {**cfg.feature_extractor.params}
+  vectorizer_params['ngram_range'] = tuple(vectorizer_params['ngram_range'])
+  vectorizer = TfidfVectorizer(**vectorizer_params)
+
+  X_train_vec = vectorizer.fit_transform(X_train_text)
+  X_test_vec = vectorizer.transform(X_test_text)
+  logger.info(f'Shape of training features: {X_train_vec.shape}')
+  logger.info(f'Shape of testing features: {X_test_vec.shape}')
+
+  # --- 3. Instantiate Model using Hydra ---
+  # hydra.utils.instantiate will create an instance of the model
+  # specified by `_target_` in the model's config YAML,
+  # passing other keys from that YAML as arguments to the model's constructor.
+  logger.info(f'Model Class: {cfg.model._target_}')
+
+  # Use Hydra's instantiate with the clean config and explicit target
+  active_model = hydra.utils.instantiate(cfg.model)
+
+  # --- 4. Train Model ---
+  logger.info('--- Training Model ---')
+  active_model.fit(X_train_vec, y_train)
+  logger.info('Training complete.')
+
+  # --- 5. Evaluate Model ---
+  predictions = active_model.predict(X_test_vec)
+  accuracy = accuracy_score(y_test, predictions)
+
+  # Generate detailed classification report
+  try:
+    report = classification_report(
+      y_test, predictions, output_dict=True, zero_division=0
+    )
+  except Exception as e:
+    logger.error(f'Error generating classification report: {str(e)}')
+    report = {}
+
+  logger.info('--- Evaluation Results ---')
+  logger.info(f'Selected Model: {cfg.model._target_}')
+  logger.info(f'Accuracy on Test Set: {accuracy:.4f}')
+
+  # Log experiment results
+  training_time = time.time() - start_time
+  metrics = {'accuracy': accuracy, 'report': report}
+  tracker.log_experiment(
+    cfg=cfg, metrics=metrics, model_type='scikit', training_time=training_time
+  )
+
+  # Hydra automatically saves the configuration for this run
+  # in the outputs/ directory (or multirun/ for sweeps).
+  run_dir = HydraConfig.get().runtime.output_dir
+  logger.info(f'\nOutput and logs saved to: {run_dir}')
+  logger.info('Experiment tracked in experiment_results/')
+
+
+if __name__ == '__main__':
+  train_model_pipeline()
+
+
+
+================================================================
+End of Codebase
+================================================================
