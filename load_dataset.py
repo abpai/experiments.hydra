@@ -78,11 +78,13 @@ def load_sms_spam_dataset(cfg: DictConfig) -> Tuple[np.ndarray, np.ndarray]:
 
   if text_column not in df.columns:
     raise ValueError(
-      f"Text column '{text_column}' not found in dataset. Available columns: {list(df.columns)}"
+      f"Text column '{text_column}' not found in dataset. "
+      f'Available columns: {list(df.columns)}'
     )
   if label_column not in df.columns:
     raise ValueError(
-      f"Label column '{label_column}' not found in dataset. Available columns: {list(df.columns)}"
+      f"Label column '{label_column}' not found in dataset. "
+      f'Available columns: {list(df.columns)}'
     )
 
   # Handle missing values

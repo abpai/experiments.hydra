@@ -55,11 +55,15 @@ def test_configurations():
       'description': 'Scikit-learn with dummy dataset (default TF-IDF)',
     },
     {
-      'cmd': 'python train_scikit.py dataset=dummy_spam feature_extractor=tfidf_advanced',
+      'cmd': (
+        'python train_scikit.py dataset=dummy_spam feature_extractor=tfidf_advanced'
+      ),
       'description': 'Scikit-learn with advanced TF-IDF',
     },
     {
-      'cmd': 'python train_scikit.py dataset=dummy_spam feature_extractor=count_vectorizer',
+      'cmd': (
+        'python train_scikit.py dataset=dummy_spam feature_extractor=count_vectorizer'
+      ),
       'description': 'Scikit-learn with Count Vectorizer',
     },
     {
@@ -68,12 +72,18 @@ def test_configurations():
     },
     # Test neural network (disable validation split for small dummy dataset)
     {
-      'cmd': 'python train_nn.py dataset=dummy_spam model.num_epochs=1 dataset.validation_split_ratio=0.0',
+      'cmd': (
+        'python train_nn.py dataset=dummy_spam model.num_epochs=1 '
+        'dataset.validation_split_ratio=0.0'
+      ),
       'description': 'Neural Network with 1 epoch',
     },
     # Test transformer (disable validation split for small dummy dataset)
     {
-      'cmd': 'python train_llm.py dataset=dummy_spam model.num_epochs=1 dataset.validation_split_ratio=0.0',
+      'cmd': (
+        'python train_llm.py dataset=dummy_spam model.num_epochs=1 '
+        'dataset.validation_split_ratio=0.0'
+      ),
       'description': 'Transformer with 1 epoch',
     },
   ]

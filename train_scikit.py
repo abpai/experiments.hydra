@@ -9,7 +9,6 @@ from omegaconf import DictConfig, OmegaConf
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
-from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
 from mlflow_integration import MLflowHydraIntegration
 
@@ -23,8 +22,7 @@ logger = structlog.get_logger(__name__)
 def train_model_pipeline(cfg: DictConfig) -> None:
   """Main training pipeline for scikit-learn models."""
   try:
-    # Initialize both tracking systems
-    tracker = ExperimentTracker()  # Keep for backwards compatibility
+    # Initialize MLflow tracking
     mlflow_integration = MLflowHydraIntegration(cfg)
     start_time = time.time()
 
@@ -142,16 +140,10 @@ def train_model_pipeline(cfg: DictConfig) -> None:
           )
           logger.info(log_msg)
 
-      # Log experiment results to custom tracker (for backwards compatibility)
-      tracker.log_experiment(
-        cfg=cfg, metrics=final_metrics, model_type='scikit', training_time=training_time
-      )
-
       # Hydra output information
       run_dir = HydraConfig.get().runtime.output_dir
       logger.info('Training completed successfully.')
       logger.info(f'Output and logs saved to: {run_dir}')
-      logger.info('Experiment tracked in experiment_results/')
       logger.info(f'MLflow run ID: {mlflow_integration.run.info.run_id}')
 
   except Exception as e:

@@ -13,7 +13,6 @@ from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 
-from experiment_tracker import ExperimentTracker
 from load_dataset import load_dataset
 from mlflow_integration import MLflowHydraIntegration
 
@@ -289,8 +288,7 @@ def save_model(
 def train_transformer_pipeline(cfg: DictConfig) -> None:
   """Main training pipeline for transformer models."""
   try:
-    # Initialize both tracking systems
-    tracker = ExperimentTracker()  # Keep for backwards compatibility
+    # Initialize MLflow tracking
     mlflow_integration = MLflowHydraIntegration(cfg)
     start_time = time.time()
 
@@ -438,21 +436,11 @@ def train_transformer_pipeline(cfg: DictConfig) -> None:
 
     mlflow_integration.log_metrics(final_mlflow_metrics)
 
-    # Log experiment results to custom tracker (for backwards compatibility)
-    tracker.log_experiment(
-      cfg=cfg,
-      metrics=final_metrics,
-      model_type='transformer',
-      model_path=model_path,
-      training_time=training_time,
-    )
-
     # End MLflow run
     mlflow_integration.end_run()
 
     if model_path:
       logger.info(f'Training completed successfully. Model saved to {model_path}')
-    logger.info('Experiment tracked in experiment_results/')
     logger.info('MLflow tracking completed')
 
   except Exception as e:

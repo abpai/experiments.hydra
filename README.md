@@ -20,9 +20,9 @@ This project demonstrates:
 - 🔄 **Easy Experimentation**: Command-line configuration overrides
 - 📈 **Comprehensive Evaluation**: Accuracy metrics and classification reports
 - 💾 **Model Persistence**: Automatic model saving with metadata
-- 📋 **Dual Experiment Tracking**: MLflow integration + custom CSV tracking
+- 📋 **MLflow Experiment Tracking**: Complete experiment tracking with MLflow
 - 🖥️ **MLflow UI**: Interactive web interface for experiment comparison
-- 📊 **Visual Analysis**: Automated plots and comparison tools
+- 📊 **Visual Analysis**: MLflow-powered plots and comparison tools
 
 ## Installation
 
@@ -63,9 +63,8 @@ experiments.hydra/
 ├── train_nn.py                 # Neural network training pipeline
 ├── train_llm.py                # LLM training pipeline
 ├── load_dataset.py             # Dataset loading utilities
-├── experiment_tracker.py       # Custom CSV-based experiment tracking
 ├── mlflow_integration.py       # MLflow integration and configuration
-├── analyze_experiments.py      # Custom experiment analysis and visualization
+├── analyze_experiments.py      # MLflow-based experiment analysis and visualization
 ├── launch_mlflow_ui.py         # MLflow UI launcher script
 ├── test_training_scripts.py    # Validation script for all training pipelines
 ├── models/                     # Model implementations
@@ -92,9 +91,6 @@ experiments.hydra/
 ├── data/                       # Dataset storage
 ├── outputs/                    # Training outputs and logs
 ├── mlruns/                     # MLflow experiment tracking data
-├── experiment_results/         # Custom experiment tracking results
-│   ├── experiment_results.csv  # Unified results table
-│   └── experiment_*.json       # Detailed experiment records
 └── pyproject.toml              # Project dependencies
 ```
 
@@ -300,69 +296,59 @@ outputs/
 
 ## Experiment Tracking
 
-The project includes **dual experiment tracking** with both a custom CSV-based system and **MLflow integration** for comprehensive experiment management and visualization.
+The project uses **MLflow** for comprehensive experiment tracking and management.
 
 ### Automatic Tracking
 
-Every training run is automatically tracked with **both systems**:
-
-#### **MLflow Tracking** (Primary)
+Every training run is automatically tracked with MLflow:
 
 - **Auto-logging**: Automatic model parameters, metrics, and artifacts
 - **Web UI**: Interactive experiment comparison and visualization
 - **Model Registry**: Built-in model versioning and deployment preparation
 - **Artifact Storage**: Models, configs, and plots automatically saved
-
-#### **Custom CSV Tracking** (Backup/Analysis)
-
-- **Unified Table**: All experiments in single CSV for analysis
-- **Custom Metrics**: Project-specific tracking fields
-- **Backwards Compatibility**: Works without MLflow dependency
+- **Run Comparison**: Side-by-side analysis of different experiments
+- **Hyperparameter Tracking**: Complete parameter logging and analysis
 
 **Data Storage**:
 
 - `mlruns/` - MLflow experiment data and artifacts
-- `experiment_results/experiment_results.csv` - Unified results table
-- `experiment_results/experiment_*.json` - Detailed run information
 
 ### Analyzing Results
+
+The analysis script automatically discovers all MLflow experiments and provides flexible analysis options. It handles missing data gracefully and provides helpful error messages when needed.
 
 #### View Overall Summary
 
 ```shell
-# Show summary of all experiments
+# Show summary of all experiments from MLflow (analyzes all experiments by default)
 python analyze_experiments.py
 
 # Example output:
 # ================================================================================
 # EXPERIMENT RESULTS SUMMARY
 # ================================================================================
-# Total experiments: 15
-# Model types: scikit, neural_network, transformer
+# Total experiments: 10
+# Experiments: {'spam_classification_experiment': 7, 'nn_spam_classification': 2, 'transformer_spam_classification': 1}
+# Frameworks: pytorch-transformers, pytorch-embeddings, scikit-learn
 # Date range: 2024-01-15_10-30-45 to 2024-01-15_16-45-12
 ```
 
-#### Compare Model Types
+#### Focus on Specific Experiments
 
 ```shell
-# Generate comparison plots
-python analyze_experiments.py --compare
+# Analyze a specific experiment
+python analyze_experiments.py --experiment spam_classification_experiment
+python analyze_experiments.py --experiment nn_spam_classification
+python analyze_experiments.py --experiment transformer_spam_classification
 
-# Save plots to file instead of displaying
-python analyze_experiments.py --compare --save-plots model_comparison.png
+# List available experiments (shown when invalid experiment name is provided)
+python analyze_experiments.py --experiment invalid_name
 ```
-
-The comparison plots include:
-
-- Accuracy distribution by model type
-- Performance over time
-- F1-score distributions
-- Top 10 performing models
 
 #### Focus on Specific Model Types
 
 ```shell
-# Analyze only scikit-learn models
+# Analyze only scikit-learn models (across all experiments)
 python analyze_experiments.py --model-type scikit
 
 # Analyze neural networks
@@ -371,6 +357,27 @@ python analyze_experiments.py --model-type neural_network
 # Analyze transformers
 python analyze_experiments.py --model-type transformer
 ```
+
+#### Generate Comparison Plots
+
+```shell
+# Generate comparison plots from MLflow data
+python analyze_experiments.py --compare
+
+# Save plots to file instead of displaying
+python analyze_experiments.py --compare --save-plots model_comparison.png
+
+# Combine specific experiment with plots
+python analyze_experiments.py --experiment nn_spam_classification --compare
+```
+
+The comparison plots include:
+
+- Accuracy distribution by framework
+- Performance over time
+- F1-score distributions
+- Top 10 performing models
+- Automatic handling of missing data (NaN values)
 
 ### MLflow UI (Recommended)
 
@@ -436,7 +443,7 @@ mlflow ui
 #### Run and Compare Multiple Models
 
 ```shell
-# Run experiments with different models (both tracking systems active)
+# Run experiments with different models (all tracked in MLflow)
 python train_scikit.py model=naive_bayes
 python train_scikit.py model=logistic_regression
 python train_nn.py model.hidden_units=256
@@ -445,76 +452,93 @@ python train_llm.py model.freeze_transformer=false
 # View results in MLflow UI (recommended)
 python launch_mlflow_ui.py
 
-# Or analyze with custom tools
+# Or analyze with MLflow-based tools (analyzes all experiments by default)
 python analyze_experiments.py --compare
+
+# Focus on specific experiment results
+python analyze_experiments.py --experiment spam_classification_experiment
 ```
 
 #### Hyperparameter Sweeps with Tracking
 
 ```shell
-# Run parameter sweeps - all automatically tracked
+# Run parameter sweeps - all automatically tracked in MLflow
 python train_scikit.py -m model=naive_bayes,logistic_regression,svm
 python train_nn.py -m model.learning_rate=0.001,0.01,0.1 model.hidden_units=64,128,256
 
-# View best results for each model type
+# View best results for each model type from MLflow (searches all experiments)
 python analyze_experiments.py --model-type scikit
 python analyze_experiments.py --model-type neural_network
+
+# Or focus on specific experiment sweeps
+python analyze_experiments.py --experiment nn_spam_classification --compare
 ```
 
 #### Find Best Performing Models
 
 ```shell
-# View top performers across all model types
+# View top performers across all experiments and frameworks from MLflow
 python analyze_experiments.py
 
 # The summary shows:
 # TOP 5 PERFORMING MODELS
 # --------------------------------------------------
-# timestamp           model_type      model_class                    test_accuracy  f1_macro
-# 2024-01-15_14-30-45 transformer     GPT2Classifier                 0.9650        0.9645
-# 2024-01-15_13-15-22 neural_network  EmbeddingsClassifier           0.9580        0.9575
-# 2024-01-15_12-45-10 scikit          LogisticRegression             0.9520        0.9515
+# timestamp           framework      test_accuracy  experiment_name                f1_macro
+# 2024-01-15_14-30-45 scikit-learn   0.9919        spam_classification_experiment  0.9821
+# 2024-01-15_13-15-22 pytorch-embeddings 0.9901     nn_spam_classification          0.9788
+# 2024-01-15_12-45-10 scikit-learn   0.9910        spam_classification_experiment  0.9806
+
+# Focus on specific experiment's best models
+python analyze_experiments.py --experiment spam_classification_experiment
 ```
 
-### Results Directory Structure
+### MLflow Data Structure
+
+MLflow automatically organizes experiment data by training pipeline. Example:
 
 ```
-experiment_results/
-├── experiment_results.csv          # Unified results table
-├── experiment_2024-01-15_10-30-45.json  # Detailed run #1
-├── experiment_2024-01-15_11-15-30.json  # Detailed run #2
-└── experiment_2024-01-15_12-45-10.json  # Detailed run #3
+mlruns/
+├── 0/                              # Default experiment (usually empty)
+├── 445719440628902944/             # spam_classification_experiment (scikit-learn)
+├── 699778182175416388/             # nn_spam_classification (neural networks)
+├── 170258548737220159/             # transformer_spam_classification (transformers)
+│   ├── meta.yaml                   # Experiment metadata
+│   └── <run_id>/                   # Individual run directories
+│       ├── meta.yaml               # Run metadata
+│       ├── metrics/                # Logged metrics (test_accuracy, f1_macro, etc.)
+│       ├── params/                 # Logged parameters (model config, hyperparameters)
+│       ├── tags/                   # Run tags (framework, dataset, etc.)
+│       └── artifacts/              # Saved artifacts (models, configs, plots)
+└── models/                         # MLflow model registry
 ```
 
-### CSV Results Format
+### MLflow Tracked Data
 
-The `experiment_results.csv` contains columns for easy analysis:
+All experiments automatically log:
 
-| Column                    | Description                            |
-| ------------------------- | -------------------------------------- |
-| `timestamp`               | When the experiment was run            |
-| `model_type`              | scikit, neural_network, or transformer |
-| `model_class`             | Specific model implementation          |
-| `test_accuracy`           | Final test accuracy                    |
-| `precision_macro`         | Macro-averaged precision               |
-| `recall_macro`            | Macro-averaged recall                  |
-| `f1_macro`                | Macro-averaged F1-score                |
-| `training_time_seconds`   | Total training time                    |
-| Model-specific parameters | Varies by model type                   |
+| Data Type         | Description                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| **Metrics**       | test_accuracy, precision_macro, recall_macro, f1_macro                                           |
+| **Parameters**    | Model hyperparameters and config values                                                          |
+| **Tags**          | framework (scikit-learn, pytorch-embeddings, pytorch-transformers), dataset, experiment metadata |
+| **Artifacts**     | Saved models, configuration files                                                                |
+| **System Info**   | Git commit, Python version, packages                                                             |
+| **Hardware Info** | CPU/GPU details, memory usage                                                                    |
 
 ### Integration with Hydra Sweeps
 
-The tracking system works seamlessly with Hydra's multirun feature:
+MLflow tracking works seamlessly with Hydra's multirun feature:
 
 ```shell
-# Run sweep - each configuration automatically tracked
+# Run sweep - each configuration automatically tracked in MLflow
 python train_nn.py -m model.learning_rate=0.001,0.01 model.hidden_units=64,128 model.dropout_p=0.3,0.5
 
-# Analyze sweep results
+# Analyze sweep results via MLflow UI or analysis tools
+python launch_mlflow_ui.py
 python analyze_experiments.py --model-type neural_network
 ```
 
-This creates individual experiment records for each combination in the sweep, making it easy to identify the best hyperparameter combinations.
+Each sweep configuration creates a separate MLflow run, making it easy to compare hyperparameter combinations and identify optimal settings.
 
 ## Model Performance
 
@@ -653,7 +677,7 @@ Validate that all training scripts work correctly:
 
 ```shell
 # Test all training pipelines with different configurations
-python test_training_scripts.py
+python tests/training_scripts.py
 
 # This tests:
 # - Scikit-learn with different feature extractors
