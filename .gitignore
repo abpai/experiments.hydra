@@ -177,3 +177,5 @@ pyrightconfig.json
 
 outputs/*
 data/*
+mlruns/*
+multirun/*

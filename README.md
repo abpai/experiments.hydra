@@ -20,6 +20,9 @@ This project demonstrates:
 - 🔄 **Easy Experimentation**: Command-line configuration overrides
 - 📈 **Comprehensive Evaluation**: Accuracy metrics and classification reports
 - 💾 **Model Persistence**: Automatic model saving with metadata
+- 📋 **MLflow Experiment Tracking**: Complete experiment tracking with MLflow
+- 🖥️ **MLflow UI**: Interactive web interface for experiment comparison
+- 📊 **Visual Analysis**: MLflow-powered plots and comparison tools
 
 ## Installation
 
@@ -60,6 +63,10 @@ experiments.hydra/
 ├── train_nn.py                 # Neural network training pipeline
 ├── train_llm.py                # LLM training pipeline
 ├── load_dataset.py             # Dataset loading utilities
+├── mlflow_integration.py       # MLflow integration and configuration
+├── analyze_experiments.py      # MLflow-based experiment analysis and visualization
+├── launch_mlflow_ui.py         # MLflow UI launcher script
+├── test_training_scripts.py    # Validation script for all training pipelines
 ├── models/                     # Model implementations
 │   ├── embeddings.py           # Embeddings classifier model implementation
 │   └── gpt2.py                 # GPT-2 classifier model implementation
@@ -75,12 +82,15 @@ experiments.hydra/
 │   │   └── svm.yaml
 │   ├── feature_extractor/      # Feature extraction configs
 │   │   ├── tfidf_default.yaml
+│   │   ├── tfidf_advanced.yaml
+│   │   ├── count_vectorizer.yaml
 │   │   └── sentence_transformer.yaml
 │   └── dataset/                # Dataset configurations
 │       ├── sms_spam.yaml
 │       └── dummy_spam.yaml
 ├── data/                       # Dataset storage
 ├── outputs/                    # Training outputs and logs
+├── mlruns/                     # MLflow experiment tracking data
 └── pyproject.toml              # Project dependencies
 ```
 
@@ -102,14 +112,18 @@ python train_scikit.py model=svm
 python train_scikit.py model=logistic_regression model.C=0.1
 python train_scikit.py model=svm model.kernel=rbf model.C=10.0
 
-# Change feature extraction
-python train_scikit.py feature_extractor.params.min_df=2
-python train_scikit.py feature_extractor.params.max_df=0.8
-python train_scikit.py feature_extractor.params.ngram_range=[1,3]
+# Use different feature extractors
+python train_scikit.py feature_extractor=tfidf_advanced
+python train_scikit.py feature_extractor=count_vectorizer
+
+# Change feature extraction parameters
+python train_scikit.py feature_extractor.min_df=2
+python train_scikit.py feature_extractor.max_df=0.8
+python train_scikit.py feature_extractor.ngram_range=[1,3]
 
 # Add new TF-IDF parameters (will be added to config)
-python train_scikit.py +feature_extractor.params.max_features=5000
-python train_scikit.py +feature_extractor.params.stop_words=english
+python train_scikit.py +feature_extractor.max_features=5000
+python train_scikit.py +feature_extractor.stop_words=english
 
 # Use different dataset
 python train_scikit.py dataset=dummy_spam
@@ -190,34 +204,47 @@ Each training script uses a dedicated main configuration:
 
 ### Feature Extractors
 
-- `tfidf_default`: TF-IDF vectorization (for scikit-learn)
-- `sentence_transformer`: Sentence embeddings (for neural networks)
+#### For Scikit-learn Models
 
-#### TF-IDF Parameters
+- `tfidf_default`: Basic TF-IDF vectorization
+- `tfidf_advanced`: Advanced TF-IDF with stop words and bigrams
+- `count_vectorizer`: Count-based feature extraction
 
-The `tfidf_default` configuration includes these parameters:
+#### For Neural Networks
+
+- `sentence_transformer`: Sentence embeddings using transformers
+
+#### Scikit-learn Feature Extractor Usage
+
+All feature extractors now use Hydra's instantiation system for consistency:
+
+```shell
+# Use different feature extractors
+python train_scikit.py feature_extractor=tfidf_default
+python train_scikit.py feature_extractor=tfidf_advanced
+python train_scikit.py feature_extractor=count_vectorizer
+
+# Override specific parameters
+python train_scikit.py feature_extractor.min_df=2
+python train_scikit.py feature_extractor.max_df=0.8
+python train_scikit.py feature_extractor.ngram_range=[1,3]
+
+# Add new parameters with + prefix
+python train_scikit.py +feature_extractor.max_features=5000
+python train_scikit.py +feature_extractor.stop_words=english
+```
+
+#### Available TF-IDF Parameters
+
+All sklearn.feature_extraction.text.TfidfVectorizer parameters are supported:
 
 - `min_df`: Minimum document frequency (default: 1)
 - `max_df`: Maximum document frequency (default: 1.0)
 - `ngram_range`: N-gram range (default: [1,1])
-
-You can override existing parameters or add new ones:
-
-```shell
-# Override existing parameters
-python train_scikit.py feature_extractor.params.min_df=2
-python train_scikit.py feature_extractor.params.max_df=0.8
-
-# Add new parameters with + prefix
-python train_scikit.py +feature_extractor.params.max_features=5000
-python train_scikit.py +feature_extractor.params.stop_words=english
-```
-
-Common TF-IDF parameters you can add:
-
 - `max_features`: Maximum number of features
 - `stop_words`: Stop words to remove ('english' or custom list)
 - `lowercase`: Convert to lowercase (default: True)
+- `strip_accents`: Remove accents ('unicode', 'ascii', or None)
 - `binary`: Use binary term frequencies (default: False)
 
 ## Advanced Usage
@@ -266,6 +293,252 @@ outputs/
         ├── train.log                 # Training logs
         └── models/                   # Saved models
 ```
+
+## Experiment Tracking
+
+The project uses **MLflow** for comprehensive experiment tracking and management.
+
+### Automatic Tracking
+
+Every training run is automatically tracked with MLflow:
+
+- **Auto-logging**: Automatic model parameters, metrics, and artifacts
+- **Web UI**: Interactive experiment comparison and visualization
+- **Model Registry**: Built-in model versioning and deployment preparation
+- **Artifact Storage**: Models, configs, and plots automatically saved
+- **Run Comparison**: Side-by-side analysis of different experiments
+- **Hyperparameter Tracking**: Complete parameter logging and analysis
+
+**Data Storage**:
+
+- `mlruns/` - MLflow experiment data and artifacts
+
+### Analyzing Results
+
+The analysis script automatically discovers all MLflow experiments and provides flexible analysis options. It handles missing data gracefully and provides helpful error messages when needed.
+
+#### View Overall Summary
+
+```shell
+# Show summary of all experiments from MLflow (analyzes all experiments by default)
+python analyze_experiments.py
+
+# Example output:
+# ================================================================================
+# EXPERIMENT RESULTS SUMMARY
+# ================================================================================
+# Total experiments: 10
+# Experiments: {'spam_classification_experiment': 7, 'nn_spam_classification': 2, 'transformer_spam_classification': 1}
+# Frameworks: pytorch-transformers, pytorch-embeddings, scikit-learn
+# Date range: 2024-01-15_10-30-45 to 2024-01-15_16-45-12
+```
+
+#### Focus on Specific Experiments
+
+```shell
+# Analyze a specific experiment
+python analyze_experiments.py --experiment spam_classification_experiment
+python analyze_experiments.py --experiment nn_spam_classification
+python analyze_experiments.py --experiment transformer_spam_classification
+
+# List available experiments (shown when invalid experiment name is provided)
+python analyze_experiments.py --experiment invalid_name
+```
+
+#### Focus on Specific Model Types
+
+```shell
+# Analyze only scikit-learn models (across all experiments)
+python analyze_experiments.py --model-type scikit
+
+# Analyze neural networks
+python analyze_experiments.py --model-type neural_network
+
+# Analyze transformers
+python analyze_experiments.py --model-type transformer
+```
+
+#### Generate Comparison Plots
+
+```shell
+# Generate comparison plots from MLflow data
+python analyze_experiments.py --compare
+
+# Save plots to file instead of displaying
+python analyze_experiments.py --compare --save-plots model_comparison.png
+
+# Combine specific experiment with plots
+python analyze_experiments.py --experiment nn_spam_classification --compare
+```
+
+The comparison plots include:
+
+- Accuracy distribution by framework
+- Performance over time
+- F1-score distributions
+- Top 10 performing models
+- Automatic handling of missing data (NaN values)
+
+### MLflow UI (Recommended)
+
+#### Launch MLflow Interface
+
+```shell
+# Start MLflow UI (recommended for viewing experiments)
+python launch_mlflow_ui.py
+
+# Or directly with MLflow
+mlflow ui
+
+# Access at: http://localhost:5000
+```
+
+#### MLflow Features
+
+**Experiment Comparison**:
+
+- Side-by-side model comparison
+- Interactive metric plots
+- Parameter vs. metric analysis
+- Filter and search experiments
+
+**Model Management**:
+
+- Automatic model versioning
+- Model artifact storage
+- Deployment preparation
+- Model lineage tracking
+
+**Visualizations**:
+
+- Learning curves (for neural networks)
+- Hyperparameter importance
+- Metric distributions
+- Training progress plots
+
+### Tracked Parameters
+
+#### Scikit-learn Models
+
+- Model type and hyperparameters (C, kernel, alpha)
+- TF-IDF parameters (min_df, max_df, ngram_range)
+- Feature extraction settings
+
+#### Neural Networks
+
+- Architecture (hidden_units, dropout_p)
+- Training (learning_rate, batch_size, num_epochs)
+- Embedding model (sentence transformer)
+- Regularization (weight_decay)
+
+#### Transformers
+
+- Model name and size
+- Fine-tuning parameters (learning_rate, freeze_transformer)
+- Tokenization (max_length)
+- Training settings (batch_size, num_epochs)
+
+### Experiment Workflow Examples
+
+#### Run and Compare Multiple Models
+
+```shell
+# Run experiments with different models (all tracked in MLflow)
+python train_scikit.py model=naive_bayes
+python train_scikit.py model=logistic_regression
+python train_nn.py model.hidden_units=256
+python train_llm.py model.freeze_transformer=false
+
+# View results in MLflow UI (recommended)
+python launch_mlflow_ui.py
+
+# Or analyze with MLflow-based tools (analyzes all experiments by default)
+python analyze_experiments.py --compare
+
+# Focus on specific experiment results
+python analyze_experiments.py --experiment spam_classification_experiment
+```
+
+#### Hyperparameter Sweeps with Tracking
+
+```shell
+# Run parameter sweeps - all automatically tracked in MLflow
+python train_scikit.py -m model=naive_bayes,logistic_regression,svm
+python train_nn.py -m model.learning_rate=0.001,0.01,0.1 model.hidden_units=64,128,256
+
+# View best results for each model type from MLflow (searches all experiments)
+python analyze_experiments.py --model-type scikit
+python analyze_experiments.py --model-type neural_network
+
+# Or focus on specific experiment sweeps
+python analyze_experiments.py --experiment nn_spam_classification --compare
+```
+
+#### Find Best Performing Models
+
+```shell
+# View top performers across all experiments and frameworks from MLflow
+python analyze_experiments.py
+
+# The summary shows:
+# TOP 5 PERFORMING MODELS
+# --------------------------------------------------
+# timestamp           framework      test_accuracy  experiment_name                f1_macro
+# 2024-01-15_14-30-45 scikit-learn   0.9919        spam_classification_experiment  0.9821
+# 2024-01-15_13-15-22 pytorch-embeddings 0.9901     nn_spam_classification          0.9788
+# 2024-01-15_12-45-10 scikit-learn   0.9910        spam_classification_experiment  0.9806
+
+# Focus on specific experiment's best models
+python analyze_experiments.py --experiment spam_classification_experiment
+```
+
+### MLflow Data Structure
+
+MLflow automatically organizes experiment data by training pipeline. Example:
+
+```
+mlruns/
+├── 0/                              # Default experiment (usually empty)
+├── 445719440628902944/             # spam_classification_experiment (scikit-learn)
+├── 699778182175416388/             # nn_spam_classification (neural networks)
+├── 170258548737220159/             # transformer_spam_classification (transformers)
+│   ├── meta.yaml                   # Experiment metadata
+│   └── <run_id>/                   # Individual run directories
+│       ├── meta.yaml               # Run metadata
+│       ├── metrics/                # Logged metrics (test_accuracy, f1_macro, etc.)
+│       ├── params/                 # Logged parameters (model config, hyperparameters)
+│       ├── tags/                   # Run tags (framework, dataset, etc.)
+│       └── artifacts/              # Saved artifacts (models, configs, plots)
+└── models/                         # MLflow model registry
+```
+
+### MLflow Tracked Data
+
+All experiments automatically log:
+
+| Data Type         | Description                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| **Metrics**       | test_accuracy, precision_macro, recall_macro, f1_macro                                           |
+| **Parameters**    | Model hyperparameters and config values                                                          |
+| **Tags**          | framework (scikit-learn, pytorch-embeddings, pytorch-transformers), dataset, experiment metadata |
+| **Artifacts**     | Saved models, configuration files                                                                |
+| **System Info**   | Git commit, Python version, packages                                                             |
+| **Hardware Info** | CPU/GPU details, memory usage                                                                    |
+
+### Integration with Hydra Sweeps
+
+MLflow tracking works seamlessly with Hydra's multirun feature:
+
+```shell
+# Run sweep - each configuration automatically tracked in MLflow
+python train_nn.py -m model.learning_rate=0.001,0.01 model.hidden_units=64,128 model.dropout_p=0.3,0.5
+
+# Analyze sweep results via MLflow UI or analysis tools
+python launch_mlflow_ui.py
+python analyze_experiments.py --model-type neural_network
+```
+
+Each sweep configuration creates a separate MLflow run, making it easy to compare hyperparameter combinations and identify optimal settings.
 
 ## Model Performance
 
@@ -394,8 +667,24 @@ test_split_ratio: 0.2
 - **Memory Management**: Adjust batch sizes based on available memory
 - **Early Stopping**: Use validation sets to prevent overfitting
 - **Reproducibility**: Set consistent random seeds across experiments
+- **Experiment Tracking**: All runs are automatically tracked for easy performance comparison
 
 ## Development
+
+### Testing Training Scripts
+
+Validate that all training scripts work correctly:
+
+```shell
+# Test all training pipelines with different configurations
+python tests/training_scripts.py
+
+# This tests:
+# - Scikit-learn with different feature extractors
+# - Neural networks with reduced epochs
+# - Transformers with reduced epochs
+# - Various parameter overrides
+```
 
 ### Running Tests
 
@@ -426,7 +715,9 @@ Key dependencies managed via `pyproject.toml`:
 
 - **Core**: `hydra-core`, `omegaconf`, `structlog`
 - **ML**: `torch`, `transformers`, `sentence-transformers`, `scikit-learn`
+- **Tracking**: `mlflow` (experiment tracking and model registry)
 - **Data**: `pandas`, `numpy`
+- **Visualization**: `matplotlib`, `seaborn`
 - **Utilities**: `tqdm`, `pydantic`
 
 ## License
